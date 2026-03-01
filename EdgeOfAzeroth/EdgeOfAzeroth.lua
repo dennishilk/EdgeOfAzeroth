@@ -110,6 +110,10 @@ function EdgeOfAzeroth:StopNavigation(silent)
         self.ui.arrowFrame:Hide()
     end
 
+    if self.ui and self.ui.arrowTexture then
+        self.ui.arrowTexture:SetRotation(0)
+    end
+
     if self.ui and self.ui.distanceText then
         self.ui.distanceText:SetText("Distance (approx): --")
     end
@@ -134,6 +138,10 @@ function EdgeOfAzeroth:StartNavigation()
 
     if self.ui and self.ui.arrowFrame then
         self.ui.arrowFrame:Show()
+    end
+
+    if self.ui and self.ui.arrowTexture then
+        self.ui.arrowTexture:SetAlpha(1)
     end
 
     ChatMessage("Navigation started to " .. self.activeDestination.name .. ".")
@@ -269,7 +277,8 @@ function EdgeOfAzeroth:CreateArrowFrame()
 
     local texture = frame:CreateTexture(nil, "ARTWORK")
     texture:SetAllPoints(frame)
-    texture:SetTexture("Interface\\MINIMAP\\ROTATING-MINIMAP-ARROW")
+    texture:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
+    texture:SetAlpha(1)
     texture:SetVertexColor(1, 0.8, 0.2, 1)
 
     local distanceText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
