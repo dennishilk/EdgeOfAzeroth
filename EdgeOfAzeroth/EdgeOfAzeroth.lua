@@ -245,14 +245,19 @@ function EdgeOfAzeroth:UpdateNavigation(elapsed)
 
     if distanceYards < 10 then
         self:StopNavigation(true)
+
         if UIErrorsFrame and UIErrorsFrame.AddMessage then
             UIErrorsFrame:AddMessage("You have reached the edge of Azeroth.", 1.0, 0.8, 0.2, 3)
         end
 
         if PlaySound then
-            local questCompleteSound = SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE or 12889
-            PlaySound(questCompleteSound, "Master")
+            if SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE then
+                PlaySound(SOUNDKIT.UI_QUEST_COMPLETE, "Master")
+            else
+                PlaySound(12889, "Master")
+            end
         end
+
         return
     end
 
@@ -372,7 +377,6 @@ function EdgeOfAzeroth:CreateMainWindow()
 
     UIDropDownMenu_SetWidth(dropdown, 345)
     UIDropDownMenu_SetText(dropdown, "Choose a destination")
-    UIDropDownMenu_SetMaxButtons(18)
 
     startButton:SetScript("OnClick", function()
         EdgeOfAzeroth:StartNavigation()
