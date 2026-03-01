@@ -398,6 +398,12 @@ function EdgeOfAzeroth:ToggleMainWindow()
 end
 
 function EdgeOfAzeroth:Initialize()
+    if self.initialized then
+        return
+    end
+
+    self.initialized = true
+
     self:CreateMainWindow()
     self:CreateArrowFrame()
 
@@ -408,16 +414,10 @@ function EdgeOfAzeroth:Initialize()
 
     self.ui.updateFrame = updateFrame
 
-    _G.SLASH_EOA1 = "/eoa"
-    SlashCmdList.EOA = function()
+    SLASH_EDGEOFAZEROTH1 = "/eoa"
+    SlashCmdList["EDGEOFAZEROTH"] = function()
         EdgeOfAzeroth:ToggleMainWindow()
     end
 end
 
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:SetScript("OnEvent", function(_, event, loadedAddonName)
-    if event == "ADDON_LOADED" and loadedAddonName == addonName then
-        EdgeOfAzeroth:Initialize()
-    end
-end)
+EdgeOfAzeroth:Initialize()
