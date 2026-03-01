@@ -245,7 +245,7 @@ function EOA:UpdateSelectionUI()
         self.ui.descriptionText:SetText("No matching results.")
         self:UpdateDescriptionHeight()
         self:UpdateWorldMapPin(nil)
-        self.ui.favoriteButton:SetText("Toggle Favorite")
+        self.ui.favoriteButton:SetText("Favorite")
         return
     end
 
@@ -255,9 +255,9 @@ function EOA:UpdateSelectionUI()
 
     local favored = EdgeOfAzerothDB.favorites[entry.id]
     if favored then
-        self.ui.favoriteButton:SetText("Toggle Favorite ★")
+        self.ui.favoriteButton:SetText("Unfavorite")
     else
-        self.ui.favoriteButton:SetText("Toggle Favorite ☆")
+        self.ui.favoriteButton:SetText("Favorite")
     end
 
     self:UpdateWorldMapPin(entry)
@@ -614,7 +614,7 @@ function EOA:CreateUI()
 
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.title:ClearAllPoints()
-    frame.title:SetPoint("TOP", frame, "TOP", 0, -12)
+    frame.title:SetPoint("TOP", frame, "TOP", 0, -6)
     frame.title:SetText("Edge Of Azeroth")
 
     frame.CloseButton:ClearAllPoints()
@@ -727,20 +727,20 @@ function EOA:CreateUI()
     end)
 
     local saveCustomButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    saveCustomButton:SetWidth(190)
-    saveCustomButton:SetHeight(24)
-    saveCustomButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", leftPadding, bottomPadding)
+    saveCustomButton:SetSize(200, 24)
+    saveCustomButton:ClearAllPoints()
+    saveCustomButton:SetPoint("TOPLEFT", startButton, "BOTTOMLEFT", 0, -8)
     saveCustomButton:SetText("Save My Position as Custom Spot")
     saveCustomButton:SetScript("OnClick", function()
         EOA:SaveCustomSpotFromPlayerPosition()
     end)
 
     local favoriteButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    favoriteButton:SetWidth(190)
-    favoriteButton:SetHeight(24)
-    favoriteButton:SetPoint("LEFT", saveCustomButton, "RIGHT", spacing, 0)
+    favoriteButton:ClearAllPoints()
+    favoriteButton:SetPoint("LEFT", saveCustomButton, "RIGHT", 10, 0)
+    favoriteButton:SetSize(140, 24)
     favoriteButton.fitTextWidthPadding = 40
-    favoriteButton:SetText("Toggle Favorite ☆")
+    favoriteButton:SetText("Favorite")
     favoriteButton:SetScript("OnClick", function()
         EOA:ToggleFavoriteForSelected()
     end)
