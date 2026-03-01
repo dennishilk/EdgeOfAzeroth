@@ -1,8 +1,7 @@
 ## Interface: 11404
-## Title: EdgeOfAzeroth
-## Notes: Navigate to forgotten edges of Azeroth.
+## Title: Edge Of Azeroth
+## Notes: Navigate to hidden and remote places across Azeroth.
 ## Author: EdgeOfAzeroth
-## Version: 1.0.0
-## SavedVariables: EdgeOfAzerothDB
+## Version: 2.0.0
 
 EdgeOfAzeroth.lua
