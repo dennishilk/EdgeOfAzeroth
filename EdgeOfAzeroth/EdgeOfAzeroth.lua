@@ -186,6 +186,10 @@ function EOA:GetPlayerMapPosition()
 end
 
 function EOA:RefreshFilteredEntries()
+    if not self.ui or not self.ui.searchBox then
+        return
+    end
+
     local search = self.ui.searchBox:GetText() or ""
     self.filteredEntries = {}
 
@@ -599,7 +603,7 @@ function EOA:ToggleFavoriteForSelected()
 end
 
 function EOA:CreateUI()
-    if self.ui.frame then
+    if self.ui then
         return
     end
 
@@ -774,6 +778,10 @@ function EOA:CreateUI()
 end
 
 function EOA:ToggleMainFrame()
+    if not self.ui or not self.ui.frame then
+        return
+    end
+
     if self.ui.frame:IsShown() then
         self.ui.frame:Hide()
     else
@@ -789,6 +797,12 @@ function EOA:Initialize()
 
     EnsureDB()
     self:CreateUI()
+
+    if not self.ui or not self.ui.frame then
+        print("EdgeOfAzeroth: UI failed to initialize.")
+        return
+    end
+
     self:RefreshModeDropdown()
     self:RefreshZoneDropdown()
     self:RefreshFilteredEntries()
