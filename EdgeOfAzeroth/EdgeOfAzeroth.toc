@@ -3,5 +3,6 @@
 ## Notes: Explore the forgotten edges of Azeroth. Type /eoa to open the navigation window.
 ## Author: EdgeOfAzeroth
 ## Version: 2.0.0
+## SavedVariables: EdgeOfAzerothDB
 
 EdgeOfAzeroth.lua
