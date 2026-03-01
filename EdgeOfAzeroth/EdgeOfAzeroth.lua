@@ -618,12 +618,12 @@ function EOA:CreateUI()
     frame.title:SetText("Edge Of Azeroth")
 
     frame.CloseButton:ClearAllPoints()
-    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -4)
+    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 2, 2)
 
-    local bottomPadding = 20
-    local leftPadding = 16
-    local spacing = 8
-    local buttonWidth = 150
+    local bottomPadding = 22
+    local leftPadding = 40
+    local spacing = 10
+    local buttonWidth = 160
     local buttonHeight = 24
 
     local modeLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -647,13 +647,16 @@ function EOA:CreateUI()
     searchLabel:SetText("Search")
 
     local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-    searchBox:SetSize(168, 24)
+    searchBox:SetSize(190, 24)
     searchBox:SetPoint("TOPLEFT", searchLabel, "BOTTOMLEFT", 0, -4)
     searchBox:SetAutoFocus(false)
     searchBox:SetMaxLetters(80)
+    searchBox:SetTextInsets(6, 6, 2, 2)
 
     local placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     placeholder:SetPoint("LEFT", searchBox, "LEFT", 6, 0)
+    placeholder:SetWidth(178)
+    placeholder:SetWordWrap(false)
     placeholder:SetText("Search (e.g. runecloth, BRD, Desolace)")
 
     searchBox:SetScript("OnTextChanged", function(selfBox)
@@ -685,7 +688,7 @@ function EOA:CreateUI()
 
     local scrollFrame = CreateFrame("ScrollFrame", "EdgeOfAzerothDescriptionScroll", frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 18, -155)
-    scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -34, 80)
+    scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -34, 100)
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(1, 180)
@@ -708,7 +711,7 @@ function EOA:CreateUI()
 
     local stopButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     stopButton:SetSize(buttonWidth, buttonHeight)
-    stopButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", leftPadding + buttonWidth + spacing, bottomPadding + buttonHeight + spacing)
+    stopButton:SetPoint("LEFT", startButton, "RIGHT", spacing, 0)
     stopButton:SetText("Stop Navigation")
     stopButton:SetScript("OnClick", function()
         EOA:StopNavigation(false)
@@ -716,7 +719,7 @@ function EOA:CreateUI()
 
     local calibrateButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     calibrateButton:SetSize(buttonWidth, buttonHeight)
-    calibrateButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", leftPadding + (buttonWidth + spacing) * 2, bottomPadding + buttonHeight + spacing)
+    calibrateButton:SetPoint("LEFT", stopButton, "RIGHT", spacing, 0)
     calibrateButton:SetText("Set Target to My Position")
     calibrateButton:SetScript("OnClick", function()
         EOA:CalibrateSelectedToPlayerPosition()
@@ -732,7 +735,10 @@ function EOA:CreateUI()
 
     local favoriteButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     favoriteButton:SetSize(buttonWidth, buttonHeight)
-    favoriteButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", leftPadding + buttonWidth + spacing, bottomPadding)
+    favoriteButton:SetPoint("LEFT", saveCustomButton, "RIGHT", spacing, 0)
+    favoriteButton:SetNormalTexture(nil)
+    favoriteButton:SetHighlightTexture(nil)
+    favoriteButton:SetPushedTexture(nil)
     favoriteButton:SetText("Toggle Favorite ☆")
     favoriteButton:SetScript("OnClick", function()
         EOA:ToggleFavoriteForSelected()
