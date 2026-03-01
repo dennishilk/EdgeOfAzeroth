@@ -245,8 +245,13 @@ function EdgeOfAzeroth:UpdateNavigation(elapsed)
 
     if distanceYards < 10 then
         self:StopNavigation(true)
-        if DEFAULT_CHAT_FRAME then
-            DEFAULT_CHAT_FRAME:AddMessage("You have reached the edge of Azeroth.")
+        if UIErrorsFrame and UIErrorsFrame.AddMessage then
+            UIErrorsFrame:AddMessage("You have reached the edge of Azeroth.", 1.0, 0.8, 0.2, 3)
+        end
+
+        if PlaySound then
+            local questCompleteSound = SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE or 12889
+            PlaySound(questCompleteSound, "Master")
         end
         return
     end
