@@ -793,11 +793,6 @@ function EOA:Initialize()
     self:RefreshZoneDropdown()
     self:RefreshFilteredEntries()
 
-    SLASH_EDGEOFAZEROTH1 = "/eoa"
-    SlashCmdList["EDGEOFAZEROTH"] = function()
-        EOA:ToggleMainFrame()
-    end
-
     local ticker = CreateFrame("Frame")
     ticker:SetScript("OnUpdate", function(_, elapsed)
         EOA:OnUpdate(elapsed)
@@ -810,4 +805,13 @@ function EOA:Initialize()
     end)
 end
 
-EOA:Initialize()
+SLASH_EDGEOFAZEROTH1 = "/eoa"
+SlashCmdList["EDGEOFAZEROTH"] = function()
+    if EdgeOfAzeroth and EdgeOfAzeroth.ToggleMainFrame then
+        EdgeOfAzeroth:ToggleMainFrame()
+    end
+end
+
+if EdgeOfAzeroth and EdgeOfAzeroth.Initialize then
+    EdgeOfAzeroth:Initialize()
+end
