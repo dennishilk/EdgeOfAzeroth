@@ -618,7 +618,7 @@ function EOA:CreateUI()
     frame.title:SetText("Edge Of Azeroth")
 
     frame.CloseButton:ClearAllPoints()
-    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 2, 2)
+    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 4, 4)
 
     local bottomPadding = 22
     local leftPadding = 40
@@ -647,7 +647,9 @@ function EOA:CreateUI()
     searchLabel:SetText("Search")
 
     local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-    searchBox:SetSize(190, 24)
+    searchBox:SetWidth(160)
+    searchBox:SetHeight(24)
+    searchBox:ClearAllPoints()
     searchBox:SetPoint("TOPLEFT", searchLabel, "BOTTOMLEFT", 0, -4)
     searchBox:SetAutoFocus(false)
     searchBox:SetMaxLetters(80)
