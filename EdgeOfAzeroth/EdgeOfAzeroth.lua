@@ -1,748 +1,821 @@
 local addonName = ...
 
-local EdgeOfAzeroth = {
-    navigationActive = false,
-    selectedDestinationIndex = nil,
-    activeDestination = nil,
-    updateInterval = 0.10,
-    elapsedSinceUpdate = 0,
-    previousDistanceYards = nil,
-    defaultYardsPerMapUnit = 10000,
-    mapYardsPerUnit = {
-        [1415] = 10300, -- Eastern Plaguelands
-        [1422] = 10300, -- Western Plaguelands
-        [1452] = 11150, -- Winterspring
-        [1447] = 10400, -- Azshara
-        [1451] = 10050, -- Silithus
-        [1430] = 8900,  -- Deadwind Pass
-        [1446] = 11600, -- Tanaris
-        [1425] = 10900, -- The Hinterlands
-        [1442] = 9300,  -- Stonetalon Mountains
-        [1426] = 8500,  -- Dun Morogh
-        [1438] = 7800,  -- Teldrassil
-        [1448] = 10200, -- Felwood
-        [1443] = 11200, -- Desolace
-        [1419] = 9700,  -- Blasted Lands
-        [1435] = 9800,  -- Swamp of Sorrows
-    },
-    ui = {},
-    calibratedDestinationNames = {},
+EdgeOfAzeroth = EdgeOfAzeroth or {}
+local EOA = EdgeOfAzeroth
+
+EOA.initialized = false
+EOA.navigationActive = false
+EOA.activeEntry = nil
+EOA.filteredEntries = {}
+EOA.selectedEntryID = nil
+EOA.currentMode = "ALL"
+EOA.currentZone = "ALL"
+EOA.smoothDistance = nil
+EOA.updateAccumulator = 0
+EOA.updateRate = 0.10
+EOA.defaultYardsPerUnit = 10000
+
+local MODE_OPTIONS = {
+    { value = "ALL", text = "All" },
+    { value = "SCENIC", text = "Scenic" },
+    { value = "DUNGEON", text = "Dungeons" },
+    { value = "FARM", text = "Farming" },
+    { value = "FAVORITES", text = "Favorites" },
 }
 
-local Destinations = {
-    { name = "The Tirisfal Clearing", mapID = 1420, x = 0.517, y = 0.559, description = "A quiet clearing in Tirisfal where reports suggest rare phenomena may appear at certain in-game times, though nothing is guaranteed." },
-    { name = "The Scarlet Watchtower Rear Grounds", mapID = 1420, x = 0.777, y = 0.558, description = "Behind the old tower, the land falls into a strip of trampled grass and abandoned supply pits no patrol ever really watches. Wind threads between weathered stakes and torn pennants, carrying the faint creak of wood from the structure above. It feels like a place built for urgency and then forgotten in silence. Even in daylight, the rear grounds keep the uneasy stillness of a battlefield after the march has passed." },
-    { name = "Hidden Coastline North of Deathknell", mapID = 1420, x = 0.312, y = 0.255, description = "North of Deathknell, the land drops into a lonely coast where gray water beats against black stone in relentless rhythm. Sea mist curls through the trees and blurs the horizon until sky and ocean become one slate-colored wall. Few travelers come this far, leaving only gull cries and the scrape of pebbles beneath your boots. It is a stark edge of Lordaeron where the world feels unfinished and beautifully empty." },
-
-    { name = "Karazhan Back Ridge", mapID = 1430, x = 0.478, y = 0.811, description = "Behind Karazhan, a high ridge rises above the dead grasslands like a balcony facing a haunted kingdom. From here, the tower's silhouette looms at an angle most never see, all broken spires and cold geometry. The wind rushes up the stone face in long, low moans that never seem to end. It is a vantage of awe and dread, where every shadow suggests an old secret watching back." },
-    { name = "Southern Unused Ravine", mapID = 1430, x = 0.615, y = 0.853, description = "Far to the south, a cut in the earth forms a ravine that seems bypassed by roads, camps, and history itself. Sparse grass clings to cracked soil while jagged outcrops cast thin, sharp shadows across the floor below. The area holds an abandoned quality, as if caravans once planned to pass through and changed course forever. In the hush between wind gusts, the ravine feels like a forgotten draft of the world." },
-
-    { name = "Frostwhisper Gorge Edge", mapID = 1452, x = 0.593, y = 0.224, description = "At the gorge edge, Winterspring opens into a sudden drop where blue-white ice disappears into a dim, frozen throat. Snow sweeps across the lip in ribbons, occasionally revealing old stone and claw marks beneath. The cold is absolute here, biting through armor and silence alike. Looking down feels like staring into an ancient wound the mountain never healed." },
-    { name = "Unused Northern Snow Shelf", mapID = 1452, x = 0.482, y = 0.063, description = "Near the northern limit, a broad snow shelf stretches toward nowhere, untouched by beasts or banners. The horizon is a pale blur, and drifting powder erases your tracks almost as quickly as they appear. There are no fires, no voices, only the faint crack of distant ice under deep frost. It is the kind of place that makes Azeroth feel vast, indifferent, and strangely peaceful." },
-
-    { name = "Bay of Storms Cliff Edge", mapID = 1447, x = 0.731, y = 0.196, description = "The cliff edge above the Bay of Storms drops hard into churning black water lit by cold flashes of sea-light. Salt wind tears across the rock shelf and carries the roar of waves up in uneven bursts. Ruined stonework nearby hints at lives and empires that once looked out over this same violent coast. Standing here feels like balancing between beauty and ruin at the very rim of Kalimdor." },
-    { name = "Abandoned Highborne Ruin Platform", mapID = 1447, x = 0.602, y = 0.313, description = "A raised platform of cracked Highborne stone sits half-swallowed by weeds, overlooking broken terraces and distant surf. Faded arcane motifs still trace the floor, worn smooth by time and weather rather than footsteps. The silence is deep enough that the smallest movement echoes against the old masonry. It is a suspended fragment of a fallen age, waiting without expectation for anyone to remember it." },
-
-    { name = "Far Northern Farmland", mapID = 1422, x = 0.449, y = 0.071, description = "In the far north of Western Plaguelands, the fields thin into bleak rows of dead crops and collapsed fencing. The soil is pale and dry, and every gust stirs dust where grain once grew in abundance. No lanterns burn here now, only crows circling low over the empty lots. The farmland is quiet in a way that speaks of loss more than decay." },
-    { name = "Caer Darrow Outer Lake Margin", mapID = 1422, x = 0.715, y = 0.841, description = "Beyond Caer Darrow's familiar approach, the outer lake margin curves into reeds and half-flooded stone. Ripples lap against broken steps that descend into dark water, reflecting the island in warped fragments. The academy's shadow stretches long across the shoreline, turning evening into something heavier. It is a solemn border where still water and old sorcery meet." },
-
-    { name = "Western Outer Dunes Beyond Hive Patrols", mapID = 1451, x = 0.246, y = 0.566, description = "West of the known patrol paths, the dunes roll in long ridges that hide you from nearly every sign of civilization. Sand hisses across buried chitin and ancient rock, drawing shifting lines that vanish by the next minute. The sky feels enormous here, and the sun turns every crest into burning gold by day and ash-gray by dusk. It is a desert margin where even the hives seem to lose interest in pursuit." },
-
-    { name = "Root Descent Cliffs Below Rut'theran", mapID = 1438, x = 0.589, y = 0.962, description = "Below Rut'theran, the giant roots descend into steep cliffs laced with mist and spray from the sea below. Bark and stone fuse together in impossible angles, forming narrow ledges above a sheer drop. Looking up, Teldrassil's canopy blots out much of the sky, turning daylight into a muted emerald glow. It feels like standing between world-tree myth and open ocean, with no clear path back." },
-
-    { name = "Seradane Outer Treeline", mapID = 1425, x = 0.651, y = 0.211, description = "At Seradane's outer treeline, ancient trunks gather into a dim border where the wind barely reaches the ground. Moss-covered roots knot over old stone and form natural thresholds into deeper forest. The air carries a soft, constant rustle, as though unseen wings pass overhead and vanish. It is a tranquil but watchful edge, where the wild feels old enough to remember everything." },
-
-    { name = "Irontree Northern Charred Ridge", mapID = 1448, x = 0.564, y = 0.138, description = "North of Irontree, a charred ridge rises above Felwood in blackened layers of ash, bark, and exposed rock. Burnt trunks stand like spears against a bruised sky while faint green haze drifts through the hollows below. Every step crunches with brittle remnants of a forest that never truly recovered. The ridge is grim and unforgettable, a stark line between survival and corruption." },
+local TYPE_LABELS = {
+    SCENIC = "Scenic",
+    DUNGEON = "Dungeon",
+    FARM = "Farm",
 }
 
-local STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT = "EDGEOFAZEROTH_SAVE_CUSTOM_SPOT"
-
-local function ChatMessage(message)
-    if DEFAULT_CHAT_FRAME and message then
-        DEFAULT_CHAT_FRAME:AddMessage("Edge Of Azeroth: " .. message)
+local function GetMapName(mapID)
+    local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+    if info and info.name then
+        return info.name
     end
+    return string.format("Map %d", tonumber(mapID) or 0)
 end
 
-local function FormatTime(seconds)
-    if type(seconds) ~= "number" or seconds < 0 then
-        return "0m 0s"
-    end
+EOA.AtlasData = {
+    { id = "scenic_darkshore_cliffs", name = "Cliffs of Auberdine", mapID = 1439, x = 0.386, y = 0.438, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "coast", "sunset", "elven" }, description = "The high cliffs above Auberdine look out over a restless sea and moonlit stone arches. The route is straightforward from the road and safe for low-level travelers if they avoid hostile wildlife. Visibility is excellent, making it a favorite place to pause and orient by landmarks. At dusk, the surf and sky create a dramatic horizon that feels unmistakably classic." },
+    { id = "scenic_azshara_bay", name = "Bay of Storms Overlook", mapID = 1447, x = 0.778, y = 0.196, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "azshara", "cliff", "ocean" }, description = "This overlook sits above Azshara's fractured coast where waves strike black rock in rhythmic bursts. The path is accessible by ground travel and requires no exploits or unusual movement. Ruined Highborne structures nearby provide clear visual anchors for navigation and screenshots. The location captures the wild, unfinished grandeur that defines old Azeroth's shorelines." },
+    { id = "scenic_winterspring_frostsaber", name = "Frostsaber Ridge", mapID = 1452, x = 0.494, y = 0.159, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "snow", "ridge", "winter" }, description = "Frostsaber Ridge rises above the snowfields with long sightlines across northern Winterspring. Reaching it is reliable by the established mountain routes and does not require out-of-bounds travel. The open white terrain makes map-based calibration simple and repeatable for testing. In clear weather, the area feels vast and quiet, with only wind and distant creature calls." },
+    { id = "scenic_tanaris_dunes", name = "Tanaris Singing Dunes", mapID = 1446, x = 0.557, y = 0.296, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "desert", "dunes", "sunrise" }, description = "The dunes east of Gadgetzan form layered sand ridges that are easy to approach by road and open terrain. The broad landscape helps validate arrow direction at long ranges without dense obstacle clutter. Creature density is moderate, so short stops are usually safe with normal awareness. The warm light and sweeping sand patterns make this one of Kalimdor's most cinematic plains." },
+    { id = "scenic_ungoro_rim", name = "Un'Goro Crater Rim", mapID = 1449, x = 0.468, y = 0.138, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "volcanic", "jungle", "vista" }, description = "From the crater rim, the basin opens below in a wide green bowl framed by volcanic stone. The route is established and reachable on foot using normal zone pathways. Elevation changes here are useful for testing map pin updates while preserving stable coordinates. The contrast between jungle canopy and dark rock gives the spot a striking prehistoric atmosphere." },
+    { id = "scenic_hinterlands_peak", name = "Aerie Peak Skyview", mapID = 1425, x = 0.142, y = 0.461, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "mountain", "hinterlands", "highlands" }, description = "Near Aerie Peak, the highland routes provide broad visibility over valleys and rivers below. The terrain is traversable through normal paths and flight points, with no gimmicks required. It is a practical place to compare map and minimap awareness while navigating uneven contours. Clear weather turns the region into a layered panorama of pine, stone, and distant coast." },
+    { id = "scenic_swamp_ruins", name = "Sunken Ruins Causeway", mapID = 1435, x = 0.695, y = 0.532, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "swamp", "ruins", "mist" }, description = "The old causeway through the swamp passes weathered masonry and shallow flooded ground. Access is uncomplicated by road, making it dependable for repeat visits during testing sessions. The area offers strong ambient visuals with fog, water reflections, and ruined silhouettes. It feels ancient and quiet, with a persistent sense of forgotten history." },
+    { id = "scenic_plaguelands_lake", name = "Caer Darrow Shoreline", mapID = 1422, x = 0.701, y = 0.734, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "lake", "scholomance", "somber" }, description = "The lake around Caer Darrow provides a stark, memorable setting with dark water and cold stone. The shoreline can be reached by standard routes and supports precise coordinate checks near clear landmarks. It is useful for validating map pin placement because the water edge creates obvious positional references. The scene carries a grim stillness that fits the surrounding plague-scarred lands." },
+    { id = "scenic_deadwind_pass", name = "Deadwind Southern Ridge", mapID = 1430, x = 0.536, y = 0.780, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "karazhan", "ridge", "twilight" }, description = "South of Karazhan, a barren ridge overlooks the broken roads and dead grass of Deadwind Pass. The area is reachable by normal travel and is often quiet enough for uninterrupted testing. Sparse terrain features make orientation straightforward when calibrating target points. The atmosphere is bleak and dramatic, especially when the tower silhouette dominates the horizon." },
+    { id = "scenic_dunmorogh_lake", name = "Gol'Bolar Icewater", mapID = 1426, x = 0.339, y = 0.399, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "snow", "dwarf", "lake" }, description = "The frozen waters near Gol'Bolar Quarry offer a calm northern scene framed by dwarf stonework and pines. Paths are straightforward from Kharanos, so this point is ideal for early-level atlas checks. Open ice and shoreline geometry create easy visual cues for map marker verification. The region feels resilient and lived-in, with a classic dwarven frontier character." },
 
-    local minutes = math.floor(seconds / 60)
-    local remainder = math.floor(seconds % 60)
-    return string.format("%dm %ds", minutes, remainder)
+    { id = "dungeon_deadmines", name = "The Deadmines Entrance", mapID = 1436, x = 0.420, y = 0.715, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "dm", "westfall", "instance" }, description = "The Deadmines entrance is tucked in Moonbrook's mine network and remains one of Classic's most recognizable dungeon starts. Approach is consistent along Westfall roads with familiar hostile patrols nearby. This location is practical for party rendezvous and directional arrow checks in compact terrain. The surrounding ruins reinforce the narrative of a workers' revolt turned entrenched threat." },
+    { id = "dungeon_shadowfang", name = "Shadowfang Keep Entrance", mapID = 1421, x = 0.458, y = 0.684, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "sfk", "silverpine", "instance" }, description = "Shadowfang Keep stands above Pyrewood as a clear landmark visible from much of the zone. The approach road is direct and easy to follow for repeated navigation tests. Elevation changes near the keep are useful for validating smooth distance behavior. Its gothic architecture and persistent fog make the final approach especially atmospheric." },
+    { id = "dungeon_scarlet_monastery", name = "Scarlet Monastery Entrance", mapID = 1420, x = 0.852, y = 0.322, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "sm", "tirisfal", "instance" }, description = "The Scarlet Monastery gates are located in northeastern Tirisfal and are easy to identify from the surrounding road network. Travel paths are well known, making this a stable benchmark for destination selection and pin updates. The exterior courtyard provides enough space for group assembly and coordinate calibration. It remains a high-traffic classic hub for multiple wings and level brackets." },
+    { id = "dungeon_blackrock_depths", name = "Blackrock Depths Entrance", mapID = 1435, x = 0.341, y = 0.846, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "brd", "blackrock", "instance" }, description = "Blackrock Depths is reached through Blackrock Mountain, with interior chains and platforms leading toward the instance portal. The route requires care but follows standard geometry and established travel patterns. This destination is excellent for testing precision around vertical spaces and confined approach lines. The volcanic setting gives the area a distinct industrial and militarized tone." },
+    { id = "dungeon_zulfarrak", name = "Zul'Farrak Entrance", mapID = 1446, x = 0.395, y = 0.213, type = "DUNGEON", zoneGroup = "Kalimdor", tags = { "zf", "tanaris", "instance" }, description = "Zul'Farrak rises from northern Tanaris as a broad troll city with a clear entrance approach. Open desert terrain allows clean long-distance arrow tracking before final convergence. It is straightforward to reach by mount and works well for mid-level route planning tests. The stepped sandstone architecture makes the complex visible from afar." },
+    { id = "dungeon_maraudon", name = "Maraudon Entrance", mapID = 1443, x = 0.292, y = 0.623, type = "DUNGEON", zoneGroup = "Kalimdor", tags = { "mara", "desolace", "instance" }, description = "Maraudon lies in the orange canyons of Desolace and is accessed through winding valley paths. The terrain is traversable without special movement, though nearby centaur can pressure slower groups. This point is useful for testing route persistence through curved approaches and mixed elevation. The area blends harsh stone with surprisingly vivid natural color around the caverns." },
+
+    { id = "farm_eastern_plaguebats", name = "Plaguebat Circuit", mapID = 1415, x = 0.777, y = 0.552, type = "FARM", zoneGroup = "Eastern Kingdoms", tags = { "runecloth", "bats", "vendor" }, description = "The eastern ridges host plaguebats with a practical loop for steady cloth and vendor trash farming. Pathing is simple enough to maintain momentum while avoiding unnecessary backtracking. It is suitable for solo sessions with consistent pull spacing and quick resets. The route rewards awareness but remains manageable with standard consumables and gear." },
+    { id = "farm_felwood_satyrs", name = "Felwood Satyr Camp", mapID = 1448, x = 0.375, y = 0.673, type = "FARM", zoneGroup = "Kalimdor", tags = { "felcloth", "satyr", "demons" }, description = "Felwood satyr camps are a classic destination for players seeking demonic loot tables and repeatable grinding. The area supports circular pulls with minimal dead travel between packs. Hostiles can pressure cloth classes, but terrain remains readable and practical for controlled farming. The corrupted forest visuals make long sessions feel distinct and immersive." },
+    { id = "farm_winterfall_furbolgs", name = "Winterfall Furbolg Grounds", mapID = 1452, x = 0.659, y = 0.408, type = "FARM", zoneGroup = "Kalimdor", tags = { "reputation", "furbolg", "winterspring" }, description = "Winterfall camps provide a compact grind route with clear spawn clusters in snowy terrain. Movement between targets is efficient and supports both reputation and material goals. The zone's visibility helps maintain pace and quickly identify respawn timings. This is a stable option for players who prefer structured loops over broad roaming." },
+    { id = "farm_silithus_twilight", name = "Twilight Base Camp", mapID = 1451, x = 0.483, y = 0.371, type = "FARM", zoneGroup = "Kalimdor", tags = { "twilight", "texts", "silithus" }, description = "Twilight camps in Silithus are favored for repeatable kill loops and faction-related materials. The camp layout supports route planning with clear tent clusters and short transitions. Enemy density is high enough to keep combat continuous during active periods. Sandstorm ambience and cult encampments create a harsh but focused farming environment." },
+}
+
+EOA.ZoneFilterOptions = {}
+
+local function EnsureDB()
+    EdgeOfAzerothDB = EdgeOfAzerothDB or {}
+    EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
+    EdgeOfAzerothDB.calibrated = EdgeOfAzerothDB.calibrated or {}
+    EdgeOfAzerothDB.favorites = EdgeOfAzerothDB.favorites or {}
 end
 
-local function GetPlayerMapPosition()
-    local playerMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
-    if not playerMapID then
+local function GetEntryCoords(entry)
+    if not entry then
+        return nil, nil, nil
+    end
+
+    local cal = EdgeOfAzerothDB and EdgeOfAzerothDB.calibrated and EdgeOfAzerothDB.calibrated[entry.id]
+    if cal and cal.mapID and cal.x and cal.y then
+        return cal.mapID, cal.x, cal.y
+    end
+
+    return entry.mapID, entry.x, entry.y
+end
+
+local function MergeAllEntries()
+    local merged = {}
+    for _, entry in ipairs(EOA.AtlasData) do
+        merged[#merged + 1] = entry
+    end
+
+    for _, custom in ipairs(EdgeOfAzerothDB.customSpots) do
+        merged[#merged + 1] = custom
+    end
+
+    return merged
+end
+
+function EOA:RebuildZoneFilterOptions()
+    local seen = {}
+    local zones = {}
+
+    for _, entry in ipairs(MergeAllEntries()) do
+        if entry.mapID and not seen[entry.mapID] then
+            seen[entry.mapID] = true
+            zones[#zones + 1] = {
+                mapID = entry.mapID,
+                name = GetMapName(entry.mapID),
+            }
+        end
+    end
+
+    table.sort(zones, function(a, b)
+        return (a.name or "") < (b.name or "")
+    end)
+
+    self.ZoneFilterOptions = zones
+end
+
+function EOA:GetEntryByID(id)
+    if not id then
         return nil
     end
 
-    local position = C_Map.GetPlayerMapPosition and C_Map.GetPlayerMapPosition(playerMapID, "player")
+    for _, entry in ipairs(MergeAllEntries()) do
+        if entry.id == id then
+            return entry
+        end
+    end
+
+    return nil
+end
+
+local function EntryMatchesSearch(entry, search)
+    if not search or search == "" then
+        return true
+    end
+
+    local needle = string.lower(search)
+    local haystack = string.lower(entry.name or "") .. "\n" .. string.lower(entry.description or "")
+
+    if string.find(haystack, needle, 1, true) then
+        return true
+    end
+
+    if entry.tags then
+        for _, tag in ipairs(entry.tags) do
+            if string.find(string.lower(tag), needle, 1, true) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+local function EntryMatchesFilters(entry, mode, zoneMapID, search)
+    if mode == "SCENIC" and entry.type ~= "SCENIC" then
+        return false
+    elseif mode == "DUNGEON" and entry.type ~= "DUNGEON" then
+        return false
+    elseif mode == "FARM" and entry.type ~= "FARM" then
+        return false
+    elseif mode == "FAVORITES" and not EdgeOfAzerothDB.favorites[entry.id] then
+        return false
+    end
+
+    if zoneMapID ~= "ALL" and entry.mapID ~= zoneMapID then
+        return false
+    end
+
+    return EntryMatchesSearch(entry, search)
+end
+
+function EOA:GetPlayerMapPosition()
+    local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+    if not mapID then
+        return nil
+    end
+
+    local position = C_Map.GetPlayerMapPosition and C_Map.GetPlayerMapPosition(mapID, "player")
     if not position or not position.x or not position.y then
         return nil
     end
 
-    return playerMapID, position.x, position.y
+    return mapID, position.x, position.y
 end
 
-function EdgeOfAzeroth:GetCustomDestinations()
-    EdgeOfAzerothDB = EdgeOfAzerothDB or {}
-    EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
-    return EdgeOfAzerothDB.customSpots
+function EOA:RefreshFilteredEntries()
+    local search = self.ui.searchBox:GetText() or ""
+    self.filteredEntries = {}
+
+    for _, entry in ipairs(MergeAllEntries()) do
+        if EntryMatchesFilters(entry, self.currentMode, self.currentZone, search) then
+            self.filteredEntries[#self.filteredEntries + 1] = entry
+        end
+    end
+
+    table.sort(self.filteredEntries, function(a, b)
+        return (a.name or "") < (b.name or "")
+    end)
+
+    local selectedStillVisible = false
+    for _, entry in ipairs(self.filteredEntries) do
+        if entry.id == self.selectedEntryID then
+            selectedStillVisible = true
+            break
+        end
+    end
+
+    if not selectedStillVisible then
+        self.selectedEntryID = self.filteredEntries[1] and self.filteredEntries[1].id or nil
+    end
+
+    self:RefreshResultsDropdown()
+    self:UpdateSelectionUI()
 end
 
-function EdgeOfAzeroth:GetAllDestinations()
-    local all = {}
-
-    for index, destination in ipairs(Destinations) do
-        all[#all + 1] = {
-            destination = destination,
-            index = index,
-            isCustom = false,
-        }
-    end
-
-    for customIndex, destination in ipairs(self:GetCustomDestinations()) do
-        all[#all + 1] = {
-            destination = destination,
-            index = customIndex,
-            isCustom = true,
-        }
-    end
-
-    return all
+function EOA:GetSelectedEntry()
+    return self:GetEntryByID(self.selectedEntryID)
 end
 
-function EdgeOfAzeroth:GetSelectedDestination()
-    if type(self.selectedDestinationIndex) ~= "number" then
-        return nil
+function EOA:UpdateDescriptionHeight()
+    local text = self.ui.descriptionText
+    local scrollChild = self.ui.descriptionScrollChild
+    local width = self.ui.descriptionScrollFrame:GetWidth() - 24
+    if width < 20 then
+        width = 20
     end
 
-    local allDestinations = self:GetAllDestinations()
-    local selectedEntry = allDestinations[self.selectedDestinationIndex]
-    return selectedEntry and selectedEntry.destination or nil
+    text:SetWidth(width)
+    local textHeight = text:GetStringHeight() + 16
+    if textHeight < 180 then
+        textHeight = 180
+    end
+    scrollChild:SetHeight(textHeight)
 end
 
-function EdgeOfAzeroth:GetSelectedDestinationDisplayName()
-    local destination = self:GetSelectedDestination()
-    if not destination then
-        return nil
-    end
-
-    local name = destination.name or "Unknown Destination"
-    if self.calibratedDestinationNames[name] then
-        return name .. " (calibrated)"
-    end
-
-    return name
-end
-
-function EdgeOfAzeroth:RefreshDropdown()
-    if not self.ui or not self.ui.destinationDropdown then
+function EOA:UpdateSelectionUI()
+    local entry = self:GetSelectedEntry()
+    if not entry then
+        self.ui.descriptionText:SetText("No matching results.")
+        self:UpdateDescriptionHeight()
+        self:UpdateWorldMapPin(nil)
+        self.ui.favoriteButton:SetText("Toggle Favorite")
         return
     end
 
-    UIDropDownMenu_Initialize(self.ui.destinationDropdown, function(_, level)
+    local zoneName = GetMapName(entry.mapID)
+    self.ui.descriptionText:SetText((entry.description or "") .. "\n\nZone: " .. zoneName .. "\nGroup: " .. (entry.zoneGroup or "-"))
+    self:UpdateDescriptionHeight()
+
+    local favored = EdgeOfAzerothDB.favorites[entry.id]
+    if favored then
+        self.ui.favoriteButton:SetText("Toggle Favorite ★")
+    else
+        self.ui.favoriteButton:SetText("Toggle Favorite ☆")
+    end
+
+    self:UpdateWorldMapPin(entry)
+end
+
+function EOA:RefreshModeDropdown()
+    UIDropDownMenu_Initialize(self.ui.modeDropdown, function(_, level)
         if level ~= 1 then
             return
         end
 
-        for mergedIndex, entry in ipairs(EdgeOfAzeroth:GetAllDestinations()) do
+        for _, mode in ipairs(MODE_OPTIONS) do
             local info = UIDropDownMenu_CreateInfo()
-            info.text = entry.destination.name
+            info.text = mode.text
+            info.checked = (self.currentMode == mode.value)
             info.func = function()
-                EdgeOfAzeroth.selectedDestinationIndex = mergedIndex
-                if EdgeOfAzeroth.ui and EdgeOfAzeroth.ui.descriptionText then
-                    EdgeOfAzeroth.ui.descriptionText:SetText(entry.destination.description or "")
-                end
-
-                if EdgeOfAzeroth.ui and EdgeOfAzeroth.ui.updateDescriptionHeight then
-                    EdgeOfAzeroth.ui.updateDescriptionHeight()
-                end
-
-                if EdgeOfAzeroth.ui and EdgeOfAzeroth.ui.descriptionScrollFrame then
-                    EdgeOfAzeroth.ui.descriptionScrollFrame:SetVerticalScroll(0)
-                end
-
-                UIDropDownMenu_SetText(EdgeOfAzeroth.ui.destinationDropdown, EdgeOfAzeroth:GetSelectedDestinationDisplayName() or entry.destination.name)
-                EdgeOfAzeroth:UpdateWorldMapPin(entry.destination)
+                self.currentMode = mode.value
+                UIDropDownMenu_SetText(self.ui.modeDropdown, mode.text)
+                self:RefreshFilteredEntries()
             end
-            info.checked = (EdgeOfAzeroth.selectedDestinationIndex == mergedIndex)
             UIDropDownMenu_AddButton(info, level)
         end
     end)
 
-    if self.selectedDestinationIndex then
-        local displayName = self:GetSelectedDestinationDisplayName()
-        if displayName then
-            UIDropDownMenu_SetText(self.ui.destinationDropdown, displayName)
+    local currentText = "All"
+    for _, mode in ipairs(MODE_OPTIONS) do
+        if mode.value == self.currentMode then
+            currentText = mode.text
+            break
         end
     end
+    UIDropDownMenu_SetText(self.ui.modeDropdown, currentText)
 end
 
-function EdgeOfAzeroth:GetMapYardsPerUnit(mapID)
-    if not mapID then
-        return self.defaultYardsPerMapUnit
-    end
+function EOA:RefreshZoneDropdown()
+    self:RebuildZoneFilterOptions()
 
-    return self.mapYardsPerUnit[mapID] or self.defaultYardsPerMapUnit
-end
-
-function EdgeOfAzeroth:CalculateDistanceYards(mapID, fromX, fromY, toX, toY)
-    if type(fromX) ~= "number" or type(fromY) ~= "number" or type(toX) ~= "number" or type(toY) ~= "number" then
-        return nil
-    end
-
-    local dx = toX - fromX
-    local dy = toY - fromY
-    local distanceUnits = math.sqrt((dx * dx) + (dy * dy))
-    return distanceUnits * self:GetMapYardsPerUnit(mapID)
-end
-
-function EdgeOfAzeroth:StopNavigation(silent)
-    self.navigationActive = false
-    self.activeDestination = nil
-    self.previousDistanceYards = nil
-    self:UpdateWorldMapPin(nil)
-
-    if self.ui and self.ui.arrowFrame then
-        self.ui.arrowFrame:Hide()
-    end
-
-    if self.ui and self.ui.arrowTexture then
-        self.ui.arrowTexture:SetRotation(0)
-    end
-
-    if self.ui and self.ui.distanceText then
-        self.ui.distanceText:SetText("Distance (approx): --")
-    end
-
-    if self.ui and self.ui.timeText then
-        self.ui.timeText:SetText("Estimated Time (rough): --")
-    end
-
-    if not silent then
-        ChatMessage("Navigation stopped.")
-    end
-end
-
-function EdgeOfAzeroth:StartNavigation()
-    local selectedDestination = self:GetSelectedDestination()
-    if not selectedDestination then
-        ChatMessage("Please select a destination first.")
-        return
-    end
-
-    self.activeDestination = selectedDestination
-    self.navigationActive = true
-    self.previousDistanceYards = nil
-    self:UpdateWorldMapPin(self.activeDestination)
-
-    if self.ui and self.ui.arrowFrame then
-        self.ui.arrowFrame:Show()
-    end
-
-    if self.ui and self.ui.arrowTexture then
-        self.ui.arrowTexture:SetAlpha(1)
-    end
-
-    ChatMessage("Navigation started to " .. (self.activeDestination.name or "Unknown Destination") .. ".")
-end
-
-function EdgeOfAzeroth:GetTravelTimeSeconds(distanceYards)
-    if type(distanceYards) ~= "number" or distanceYards < 0 then
-        return nil
-    end
-
-    local speedYardsPerSecond = IsMounted and IsMounted() and 14 or 7
-    return distanceYards / speedYardsPerSecond
-end
-
-function EdgeOfAzeroth:UpdateArrowRotation(playerX, playerY, destination)
-    if not self.ui or not self.ui.arrowTexture then
-        return
-    end
-
-    if type(playerX) ~= "number" or type(playerY) ~= "number" then
-        return
-    end
-
-    if type(destination) ~= "table" or type(destination.x) ~= "number" or type(destination.y) ~= "number" then
-        return
-    end
-
-    local playerFacing = GetPlayerFacing and GetPlayerFacing()
-    if type(playerFacing) ~= "number" then
-        return
-    end
-
-    local dx = destination.x - playerX
-    local dy = destination.y - playerY
-
-    if dx == 0 and dy == 0 then
-        return
-    end
-
-    -- Map coordinates use Y-positive downward; invert Y to produce north-positive math.
-    local targetBearing = math.atan2(dx, -dy)
-    local relativeRotation = targetBearing - playerFacing
-
-    self.ui.arrowTexture:SetRotation(relativeRotation)
-end
-
-function EdgeOfAzeroth:UpdateZoneStatus(destination)
-    if not destination or type(destination.mapID) ~= "number" then
-        return
-    end
-
-    local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(destination.mapID)
-    local zoneName = mapInfo and mapInfo.name or "Unknown Zone"
-
-    if self.ui and self.ui.distanceText then
-        self.ui.distanceText:SetText("Travel to: " .. zoneName)
-    end
-
-    if self.ui and self.ui.timeText then
-        self.ui.timeText:SetText("Estimated Time (rough): --")
-    end
-end
-
-
-function EdgeOfAzeroth:UpdateWorldMapPin(destination)
-    if not self.ui then
-        self.ui = {}
-    end
-
-    if not self.ui.worldMapPin and WorldMapFrame and WorldMapFrame.ScrollContainer then
-        local pin = CreateFrame("Frame", nil, WorldMapFrame.ScrollContainer)
-        pin:SetSize(24, 24)
-        pin:SetFrameStrata("HIGH")
-        pin:SetFrameLevel(500)
-
-        local texture = pin:CreateTexture(nil, "ARTWORK")
-        texture:SetAllPoints(pin)
-
-        texture:SetTexture("Interface\\MINIMAP\\POIIcons")
-        texture:SetTexCoord(0.125, 0.25, 0, 0.125)
-        if not texture:GetTexture() then
-            texture:SetTexture("Interface\\WorldMap\\Skull_64")
-        end
-        if not texture:GetTexture() then
-            texture:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")
+    UIDropDownMenu_Initialize(self.ui.zoneDropdown, function(_, level)
+        if level ~= 1 then
+            return
         end
 
-        pin.texture = texture
+        local allInfo = UIDropDownMenu_CreateInfo()
+        allInfo.text = "All Zones"
+        allInfo.checked = (self.currentZone == "ALL")
+        allInfo.func = function()
+            self.currentZone = "ALL"
+            UIDropDownMenu_SetText(self.ui.zoneDropdown, "All Zones")
+            self:RefreshFilteredEntries()
+        end
+        UIDropDownMenu_AddButton(allInfo, level)
+
+        for _, zone in ipairs(self.ZoneFilterOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = zone.name
+            info.checked = (self.currentZone == zone.mapID)
+            info.func = function()
+                self.currentZone = zone.mapID
+                UIDropDownMenu_SetText(self.ui.zoneDropdown, zone.name)
+                self:RefreshFilteredEntries()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    if self.currentZone == "ALL" then
+        UIDropDownMenu_SetText(self.ui.zoneDropdown, "All Zones")
+    else
+        UIDropDownMenu_SetText(self.ui.zoneDropdown, GetMapName(self.currentZone))
+    end
+end
+
+function EOA:RefreshResultsDropdown()
+    UIDropDownMenu_Initialize(self.ui.resultsDropdown, function(_, level)
+        if level ~= 1 then
+            return
+        end
+
+        for _, entry in ipairs(self.filteredEntries) do
+            local suffix = TYPE_LABELS[entry.type] or entry.type or "Spot"
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = string.format("%s [%s]", entry.name or "Unknown", suffix)
+            info.checked = (self.selectedEntryID == entry.id)
+            info.func = function()
+                self.selectedEntryID = entry.id
+                UIDropDownMenu_SetText(self.ui.resultsDropdown, info.text)
+                self:UpdateSelectionUI()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    local selected = self:GetSelectedEntry()
+    if selected then
+        UIDropDownMenu_SetText(self.ui.resultsDropdown, string.format("%s [%s]", selected.name or "Unknown", TYPE_LABELS[selected.type] or selected.type or "Spot"))
+    else
+        UIDropDownMenu_SetText(self.ui.resultsDropdown, "No results")
+    end
+end
+
+function EOA:UpdateWorldMapPin(entry)
+    if not WorldMapFrame or not WorldMapFrame.ScrollContainer then
+        return
+    end
+
+    if not self.ui.worldMapPin then
+        local pin = WorldMapFrame.ScrollContainer:CreateTexture(nil, "OVERLAY")
+        pin:SetTexture("Interface\\WorldMap\\Skull_64")
+        pin:SetSize(18, 18)
         pin:Hide()
         self.ui.worldMapPin = pin
     end
 
     local pin = self.ui.worldMapPin
-    if not pin then
-        return
-    end
-
-    if type(destination) ~= "table" or type(destination.x) ~= "number" or type(destination.y) ~= "number" then
+    if not entry then
         pin:Hide()
         return
     end
 
-    if not WorldMapFrame or not WorldMapFrame.ScrollContainer then
+    local _, x, y = GetEntryCoords(entry)
+    if not x or not y then
         pin:Hide()
         return
     end
 
-    local canvas = WorldMapFrame.ScrollContainer
-    local w = canvas:GetWidth()
-    local h = canvas:GetHeight()
-
-    if type(w) ~= "number" or type(h) ~= "number" or w <= 0 or h <= 0 then
-        pin:Hide()
-        return
-    end
+    local width = WorldMapFrame.ScrollContainer:GetWidth() or 0
+    local height = WorldMapFrame.ScrollContainer:GetHeight() or 0
 
     pin:ClearAllPoints()
-    pin:SetParent(canvas)
-    pin:SetPoint("CENTER", WorldMapFrame.ScrollContainer, "TOPLEFT", destination.x * w, -destination.y * h)
-    pin:Show()
+    pin:SetPoint("CENTER", WorldMapFrame.ScrollContainer, "TOPLEFT", x * width, -y * height)
+
+    if WorldMapFrame:IsShown() then
+        pin:Show()
+    else
+        pin:Hide()
+    end
 end
 
-function EdgeOfAzeroth:NotifyArrival()
+function EOA:NotifyArrival()
     local text = "You have reached the edge of Azeroth."
-    local displayed = false
 
+    local sent = false
     if UIErrorsFrame and UIErrorsFrame.AddMessage then
-        local ok = pcall(UIErrorsFrame.AddMessage, UIErrorsFrame, text, 1.0, 0.8, 0.2, 3)
-        if ok then
-            displayed = true
+        local ok1 = pcall(UIErrorsFrame.AddMessage, UIErrorsFrame, text, 1.0, 0.82, 0.0, 3.0)
+        if ok1 then
+            sent = true
         else
-            ok = pcall(UIErrorsFrame.AddMessage, UIErrorsFrame, text)
-            if ok then
-                displayed = true
+            local ok2 = pcall(UIErrorsFrame.AddMessage, UIErrorsFrame, text)
+            if ok2 then
+                sent = true
             end
         end
     end
 
-    if not displayed and DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-        DEFAULT_CHAT_FRAME:AddMessage(text)
+    if not sent then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r " .. text)
     end
 
-    if PlaySound then
-        pcall(function()
-            if SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE then
-                PlaySound(SOUNDKIT.UI_QUEST_COMPLETE)
-            else
-                PlaySound(12889)
-            end
-        end)
+    pcall(function()
+        local soundKit = SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE or 12889
+        PlaySound(soundKit)
+    end)
+end
+
+function EOA:StopNavigation(silent)
+    self.navigationActive = false
+    self.activeEntry = nil
+    self.smoothDistance = nil
+
+    self.ui.arrowFrame:Hide()
+    self.ui.arrowTexture:SetRotation(0)
+    self.ui.distanceText:SetText("Distance (approx): --")
+    self.ui.timeText:SetText("Estimated Time (rough): --")
+    self.ui.travelText:SetText("Travel to: --")
+
+    if not silent then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Navigation stopped.")
     end
 end
 
-function EdgeOfAzeroth:SetTargetToMyPosition()
-    local destination = self:GetSelectedDestination()
-    if not destination then
-        ChatMessage("Please select a destination first.")
+function EOA:StartNavigation()
+    local entry = self:GetSelectedEntry()
+    if not entry then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Select a destination first.")
         return
     end
 
-    local playerMapID, playerX, playerY = GetPlayerMapPosition()
-    if not playerMapID or not playerX or not playerY then
-        ChatMessage("Unable to determine your current position.")
-        return
-    end
+    self.activeEntry = entry
+    self.navigationActive = true
+    self.smoothDistance = nil
+    self.ui.arrowFrame:Show()
+    self:UpdateWorldMapPin(entry)
 
-    destination.mapID = playerMapID
-    destination.x = playerX
-    destination.y = playerY
-    self.calibratedDestinationNames[destination.name or ""] = true
-
-    if self.ui and self.ui.destinationDropdown then
-        UIDropDownMenu_SetText(self.ui.destinationDropdown, self:GetSelectedDestinationDisplayName() or destination.name)
-    end
-
-    self:UpdateWorldMapPin(destination)
-    ChatMessage("Target updated to your current position.")
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Navigation started: " .. (entry.name or "Unknown"))
 end
 
-function EdgeOfAzeroth:SaveMyPositionAsCustomSpot()
-    local playerMapID, playerX, playerY = GetPlayerMapPosition()
-    if not playerMapID or not playerX or not playerY then
-        ChatMessage("Unable to determine your current position.")
-        return
-    end
-
-    local function SaveSpot(name)
-        local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(playerMapID)
-        local zoneName = mapInfo and mapInfo.name or "Unknown Zone"
-        local customDestinations = EdgeOfAzeroth:GetCustomDestinations()
-
-        customDestinations[#customDestinations + 1] = {
-            name = name,
-            mapID = playerMapID,
-            x = playerX,
-            y = playerY,
-            description = string.format("Custom spot in %s at %.1f, %.1f.", zoneName, playerX * 100, playerY * 100),
-        }
-
-        EdgeOfAzeroth:RefreshDropdown()
-        ChatMessage("Saved custom spot: " .. name)
-    end
-
-    local defaultName = date("EOA Spot %Y-%m-%d %H:%M")
-
-    if StaticPopup_Show and StaticPopupDialogs then
-        if not StaticPopupDialogs[STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT] then
-            StaticPopupDialogs[STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT] = {
-                text = "Name this custom spot:",
-                button1 = ACCEPT,
-                button2 = CANCEL,
-                hasEditBox = true,
-                maxLetters = 64,
-                timeout = 0,
-                whileDead = true,
-                hideOnEscape = true,
-                OnShow = function(popup)
-                    popup.editBox:SetText(defaultName)
-                    popup.editBox:HighlightText()
-                    popup.editBox:SetFocus()
-                end,
-                OnAccept = function(popup)
-                    local enteredText = popup.editBox and popup.editBox:GetText()
-                    if not enteredText or enteredText == "" then
-                        enteredText = defaultName
-                    end
-                    SaveSpot(enteredText)
-                end,
-                EditBoxOnEnterPressed = function(popup)
-                    local enteredText = popup.editBox and popup.editBox:GetText()
-                    if not enteredText or enteredText == "" then
-                        enteredText = defaultName
-                    end
-                    SaveSpot(enteredText)
-                    popup:Hide()
-                end,
-                EditBoxOnEscapePressed = function(popup)
-                    popup:Hide()
-                end,
-                preferredIndex = 3,
-            }
-        end
-
-        local popup = StaticPopup_Show(STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT)
-        if popup and popup.editBox then
-            popup.editBox:SetText(defaultName)
-            popup.editBox:HighlightText()
-        end
-        return
-    end
-
-    SaveSpot(defaultName)
-end
-
-function EdgeOfAzeroth:UpdateNavigation(elapsed)
-    if type(elapsed) ~= "number" then
-        return
-    end
-
-    self.elapsedSinceUpdate = self.elapsedSinceUpdate + elapsed
-    if self.elapsedSinceUpdate < self.updateInterval then
-        return
-    end
-    self.elapsedSinceUpdate = 0
-
-    if not self.navigationActive or not self.activeDestination then
-        return
-    end
-
-    local playerMapID, playerX, playerY = GetPlayerMapPosition()
-    if not playerMapID or not playerX or not playerY then
-        return
-    end
-
-    local destination = self.activeDestination
-    self:UpdateWorldMapPin(destination)
-
-    if playerMapID ~= destination.mapID then
-        self:UpdateZoneStatus(destination)
-        return
-    end
-
-    local distanceYards = self:CalculateDistanceYards(playerMapID, playerX, playerY, destination.x, destination.y)
+function EOA:GetEstimatedTravelSeconds(distanceYards)
     if not distanceYards then
+        return nil
+    end
+
+    local speed = (IsMounted and IsMounted()) and 14 or 7
+    return distanceYards / speed
+end
+
+local function FormatTime(seconds)
+    if not seconds or seconds < 0 then
+        return "0m 0s"
+    end
+
+    local mins = math.floor(seconds / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%dm %ds", mins, secs)
+end
+
+function EOA:OnUpdate(elapsed)
+    self.updateAccumulator = self.updateAccumulator + elapsed
+    if self.updateAccumulator < self.updateRate then
+        return
+    end
+    self.updateAccumulator = 0
+
+    if self.ui.worldMapPin and WorldMapFrame and WorldMapFrame:IsShown() then
+        self.ui.worldMapPin:Show()
+    elseif self.ui.worldMapPin then
+        self.ui.worldMapPin:Hide()
+    end
+
+    if not self.navigationActive or not self.activeEntry then
         return
     end
 
-    if distanceYards < 10 then
+    local playerMapID, playerX, playerY = self:GetPlayerMapPosition()
+    if not playerMapID then
+        self.ui.travelText:SetText("Travel to: " .. GetMapName((GetEntryCoords(self.activeEntry))))
+        return
+    end
+
+    local targetMapID, tx, ty = GetEntryCoords(self.activeEntry)
+    if playerMapID ~= targetMapID then
+        self.ui.travelText:SetText("Travel to: " .. GetMapName(targetMapID))
+        self.ui.distanceText:SetText("Distance (approx): --")
+        self.ui.timeText:SetText("Estimated Time (rough): --")
+        return
+    end
+
+    local dx = tx - playerX
+    local dy = ty - playerY
+    local units = math.sqrt((dx * dx) + (dy * dy))
+    local currentDistance = units * self.defaultYardsPerUnit
+
+    if not self.smoothDistance then
+        self.smoothDistance = currentDistance
+    else
+        self.smoothDistance = self.smoothDistance + (currentDistance - self.smoothDistance) * 0.25
+    end
+
+    local facing = GetPlayerFacing() or 0
+    local targetBearing = math.atan2(dx, -dy)
+    local relativeRotation = targetBearing - facing
+    self.ui.arrowTexture:SetRotation(relativeRotation)
+
+    self.ui.distanceText:SetText(string.format("Distance (approx): %d yards", math.max(0, math.floor(self.smoothDistance))))
+    local eta = self:GetEstimatedTravelSeconds(self.smoothDistance)
+    self.ui.timeText:SetText("Estimated Time (rough): " .. FormatTime(eta))
+    self.ui.travelText:SetText("Travel to: " .. GetMapName(targetMapID))
+
+    if currentDistance < 10 then
         self:StopNavigation(true)
         self:NotifyArrival()
+    end
+end
 
-        if UIFrameFadeOut and self.ui and self.ui.arrowFrame then
-            UIFrameFadeOut(self.ui.arrowFrame, 1, 1, 0)
-        end
-
+function EOA:CalibrateSelectedToPlayerPosition()
+    local entry = self:GetSelectedEntry()
+    if not entry then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r No selected entry to calibrate.")
         return
     end
 
-    local smoothedDistance = distanceYards
-    if type(self.previousDistanceYards) == "number" then
-        smoothedDistance = self.previousDistanceYards + ((distanceYards - self.previousDistanceYards) * 0.25)
-    end
-    self.previousDistanceYards = smoothedDistance
-
-    if self.ui and self.ui.distanceText then
-        self.ui.distanceText:SetText(string.format("Distance (approx): %d yards", math.floor(smoothedDistance + 0.5)))
+    local mapID, x, y = self:GetPlayerMapPosition()
+    if not mapID then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Unable to read your current map position.")
+        return
     end
 
-    local travelSeconds = self:GetTravelTimeSeconds(distanceYards)
-    if self.ui and self.ui.timeText then
-        self.ui.timeText:SetText("Estimated Time (rough): " .. FormatTime(travelSeconds or 0))
-    end
+    EdgeOfAzerothDB.calibrated[entry.id] = {
+        mapID = mapID,
+        x = x,
+        y = y,
+    }
 
-    self:UpdateArrowRotation(playerX, playerY, destination)
+    self:UpdateWorldMapPin(entry)
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Calibrated: " .. (entry.name or "Unknown"))
 end
 
-function EdgeOfAzeroth:CreateArrowFrame()
-    local frame = CreateFrame("Frame", addonName .. "ArrowFrame", UIParent)
-    frame:SetSize(120, 120)
-    frame:SetPoint("TOP", UIParent, "TOP", 0, -40)
-    frame:SetFrameStrata("HIGH")
-    frame:SetFrameLevel(200)
-    frame:SetAlpha(1)
-    frame:SetToplevel(true)
-    frame:Hide()
+function EOA:SaveCustomSpotFromPlayerPosition()
+    local mapID, x, y = self:GetPlayerMapPosition()
+    if not mapID then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Unable to save custom spot at this location.")
+        return
+    end
 
-    local texture = frame:CreateTexture(nil, "ARTWORK")
-    texture:SetAllPoints(frame)
-    texture:SetTexture("Interface\\Minimap\\MinimapArrow")
-    texture:SetAlpha(1)
+    local count = #EdgeOfAzerothDB.customSpots + 1
+    local id = "custom_" .. time() .. "_" .. count
 
-    local distanceText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    distanceText:SetPoint("TOP", frame, "BOTTOM", 0, -6)
-    distanceText:SetText("Distance (approx): --")
+    local customEntry = {
+        id = id,
+        name = "Custom Spot " .. count,
+        mapID = mapID,
+        x = x,
+        y = y,
+        type = "SCENIC",
+        zoneGroup = "Custom",
+        tags = { "custom", "player" },
+        description = "Player-saved location for personal routing and atlas notes. This point uses your exact map position at save time. You can recalibrate it anytime from the main window. Useful for gathering loops, landmarks, or group meeting points.",
+    }
 
-    local timeText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    timeText:SetPoint("TOP", distanceText, "BOTTOM", 0, -4)
-    timeText:SetText("Estimated Time (rough): --")
+    table.insert(EdgeOfAzerothDB.customSpots, customEntry)
+    self:RefreshZoneDropdown()
+    self:RefreshFilteredEntries()
 
-    self.ui.arrowFrame = frame
-    self.ui.arrowTexture = texture
-    self.ui.distanceText = distanceText
-    self.ui.timeText = timeText
+    self.selectedEntryID = id
+    self:RefreshResultsDropdown()
+    self:UpdateSelectionUI()
+
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Saved custom spot: " .. customEntry.name)
 end
 
-function EdgeOfAzeroth:CreateMainWindow()
-    local frame = CreateFrame("Frame", addonName .. "MainFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(500, 420)
+function EOA:ToggleFavoriteForSelected()
+    local entry = self:GetSelectedEntry()
+    if not entry then
+        return
+    end
+
+    local current = EdgeOfAzerothDB.favorites[entry.id]
+    EdgeOfAzerothDB.favorites[entry.id] = not current
+    self:UpdateSelectionUI()
+
+    if self.currentMode == "FAVORITES" then
+        self:RefreshFilteredEntries()
+    end
+end
+
+function EOA:CreateUI()
+    if self.ui.frame then
+        return
+    end
+
+    local frame = CreateFrame("Frame", "EdgeOfAzerothFrame", UIParent, "BasicFrameTemplateWithInset")
+    frame:SetSize(560, 420)
     frame:SetPoint("CENTER")
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:Hide()
 
-    if frame.CloseButton then
-        frame.CloseButton:ClearAllPoints()
-        frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
-    end
+    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.title:SetPoint("TOP", frame, "TOP", 0, -10)
+    frame.title:SetText("Edge Of Azeroth")
 
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    title:SetPoint("TOP", frame, "TOP", 0, -8)
-    title:SetText("Edge Of Azeroth")
+    frame.CloseButton:ClearAllPoints()
+    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
 
-    local dropdownLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    dropdownLabel:SetPoint("TOPLEFT", frame.Bg, "TOPLEFT", 16, -14)
-    dropdownLabel:SetText("Destination")
+    local modeLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    modeLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -36)
+    modeLabel:SetText("Mode")
 
-    local dropdown = CreateFrame("Frame", addonName .. "DestinationDropdown", frame, "UIDropDownMenuTemplate")
-    dropdown:SetPoint("TOPLEFT", dropdownLabel, "BOTTOMLEFT", -16, -2)
+    local modeDropdown = CreateFrame("Frame", "EdgeOfAzerothModeDropdown", frame, "UIDropDownMenuTemplate")
+    modeDropdown:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", -16, -2)
+    UIDropDownMenu_SetWidth(modeDropdown, 150)
 
-    local descriptionLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    descriptionLabel:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 20, -8)
-    descriptionLabel:SetText("Description")
+    local zoneLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    zoneLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 196, -36)
+    zoneLabel:SetText("Zone")
 
-    local descriptionScrollFrame = CreateFrame("ScrollFrame", addonName .. "DescriptionScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    descriptionScrollFrame:SetPoint("TOPLEFT", descriptionLabel, "BOTTOMLEFT", 4, -8)
-    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame.Bg, "BOTTOMRIGHT", -26, 110)
+    local zoneDropdown = CreateFrame("Frame", "EdgeOfAzerothZoneDropdown", frame, "UIDropDownMenuTemplate")
+    zoneDropdown:SetPoint("TOPLEFT", zoneLabel, "BOTTOMLEFT", -16, -2)
+    UIDropDownMenu_SetWidth(zoneDropdown, 150)
 
-    local descriptionContent = CreateFrame("Frame", nil, descriptionScrollFrame)
-    descriptionContent:SetSize(430, 1)
+    local searchLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    searchLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 376, -36)
+    searchLabel:SetText("Search")
 
-    local descriptionText = descriptionContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    descriptionText:SetPoint("TOPLEFT", descriptionContent, "TOPLEFT", 0, 0)
-    descriptionText:SetPoint("TOPRIGHT", descriptionContent, "TOPRIGHT", 0, 0)
+    local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+    searchBox:SetSize(168, 24)
+    searchBox:SetPoint("TOPLEFT", searchLabel, "BOTTOMLEFT", 0, -4)
+    searchBox:SetAutoFocus(false)
+    searchBox:SetMaxLetters(80)
+
+    local placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    placeholder:SetPoint("LEFT", searchBox, "LEFT", 6, 0)
+    placeholder:SetText("Search (e.g. runecloth, BRD, Desolace)")
+
+    searchBox:SetScript("OnTextChanged", function(selfBox)
+        if selfBox:GetText() == "" then
+            placeholder:Show()
+        else
+            placeholder:Hide()
+        end
+        EOA:RefreshFilteredEntries()
+    end)
+
+    searchBox:SetScript("OnEditFocusGained", function()
+        placeholder:Hide()
+    end)
+
+    searchBox:SetScript("OnEditFocusLost", function(selfBox)
+        if selfBox:GetText() == "" then
+            placeholder:Show()
+        end
+    end)
+
+    local resultsLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    resultsLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -96)
+    resultsLabel:SetText("Results")
+
+    local resultsDropdown = CreateFrame("Frame", "EdgeOfAzerothResultsDropdown", frame, "UIDropDownMenuTemplate")
+    resultsDropdown:SetPoint("TOPLEFT", resultsLabel, "BOTTOMLEFT", -16, -2)
+    UIDropDownMenu_SetWidth(resultsDropdown, 510)
+
+    local scrollFrame = CreateFrame("ScrollFrame", "EdgeOfAzerothDescriptionScroll", frame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 18, -155)
+    scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -34, 96)
+
+    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+    scrollChild:SetSize(1, 180)
+    scrollFrame:SetScrollChild(scrollChild)
+
+    local descriptionText = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    descriptionText:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, 0)
     descriptionText:SetJustifyH("LEFT")
     descriptionText:SetJustifyV("TOP")
-    descriptionText:SetNonSpaceWrap(true)
-    descriptionText:SetText("Select a destination to begin navigation.")
-
-    descriptionScrollFrame:SetScrollChild(descriptionContent)
-
-    local function UpdateDescriptionHeight()
-        local textHeight = descriptionText:GetStringHeight() or 0
-        descriptionContent:SetHeight(math.max(180, math.ceil(textHeight) + 8))
-    end
-
-    descriptionScrollFrame:HookScript("OnMouseWheel", function(scrollSelf, delta)
-        local scrollBar = scrollSelf and scrollSelf.ScrollBar
-        if not scrollBar or not scrollBar.GetMinMaxValues or not scrollBar.GetValue or not scrollBar.SetValue then
-            return
-        end
-
-        local minVal, maxVal = scrollBar:GetMinMaxValues()
-        if maxVal and maxVal > 0 then
-            local current = scrollBar:GetValue() or 0
-            scrollBar:SetValue(math.max(minVal or 0, math.min(maxVal, current - (delta * 20))))
-        end
-    end)
-    descriptionScrollFrame:EnableMouseWheel(true)
+    descriptionText:SetWidth(490)
+    descriptionText:SetText("Select a destination to view details.")
 
     local startButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    startButton:SetSize(140, 24)
-    startButton:SetPoint("BOTTOMLEFT", frame.Bg, "BOTTOMLEFT", 14, 14)
+    startButton:SetSize(110, 24)
+    startButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 16, 20)
     startButton:SetText("Start Navigation")
+    startButton:SetScript("OnClick", function()
+        EOA:StartNavigation()
+    end)
 
     local stopButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    stopButton:SetSize(140, 24)
+    stopButton:SetSize(110, 24)
     stopButton:SetPoint("LEFT", startButton, "RIGHT", 8, 0)
     stopButton:SetText("Stop Navigation")
+    stopButton:SetScript("OnClick", function()
+        EOA:StopNavigation(false)
+    end)
 
     local calibrateButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    calibrateButton:SetSize(170, 24)
-    calibrateButton:SetPoint("TOPLEFT", startButton, "BOTTOMLEFT", 0, -6)
+    calibrateButton:SetSize(140, 24)
+    calibrateButton:SetPoint("LEFT", stopButton, "RIGHT", 8, 0)
     calibrateButton:SetText("Set Target to My Position")
+    calibrateButton:SetScript("OnClick", function()
+        EOA:CalibrateSelectedToPlayerPosition()
+    end)
 
     local saveCustomButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    saveCustomButton:SetSize(170, 24)
-    saveCustomButton:SetPoint("LEFT", calibrateButton, "RIGHT", 8, 0)
+    saveCustomButton:SetSize(162, 24)
+    saveCustomButton:SetPoint("TOPLEFT", startButton, "BOTTOMLEFT", 0, -6)
     saveCustomButton:SetText("Save My Position as Custom Spot")
-
-    UIDropDownMenu_SetWidth(dropdown, 360)
-    UIDropDownMenu_SetText(dropdown, "Choose a destination")
-    UpdateDescriptionHeight()
-
-    startButton:SetScript("OnClick", function()
-        EdgeOfAzeroth:StartNavigation()
-    end)
-
-    stopButton:SetScript("OnClick", function()
-        EdgeOfAzeroth:StopNavigation(false)
-    end)
-
-    calibrateButton:SetScript("OnClick", function()
-        EdgeOfAzeroth:SetTargetToMyPosition()
-    end)
-
     saveCustomButton:SetScript("OnClick", function()
-        EdgeOfAzeroth:SaveMyPositionAsCustomSpot()
+        EOA:SaveCustomSpotFromPlayerPosition()
     end)
 
-    self.ui.mainFrame = frame
-    self.ui.destinationDropdown = dropdown
-    self.ui.descriptionText = descriptionText
-    self.ui.descriptionScrollFrame = descriptionScrollFrame
-    self.ui.updateDescriptionHeight = UpdateDescriptionHeight
+    local favoriteButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    favoriteButton:SetSize(140, 24)
+    favoriteButton:SetPoint("LEFT", saveCustomButton, "RIGHT", 8, 0)
+    favoriteButton:SetText("Toggle Favorite ☆")
+    favoriteButton:SetScript("OnClick", function()
+        EOA:ToggleFavoriteForSelected()
+    end)
 
-    self:RefreshDropdown()
+    local arrowFrame = CreateFrame("Frame", "EdgeOfAzerothArrowFrame", UIParent)
+    arrowFrame:SetSize(120, 120)
+    arrowFrame:SetPoint("TOP", UIParent, "TOP", 0, -40)
+    arrowFrame:SetFrameStrata("HIGH")
+    arrowFrame:Hide()
+
+    local arrowTexture = arrowFrame:CreateTexture(nil, "ARTWORK")
+    arrowTexture:SetAllPoints()
+    arrowTexture:SetTexture("Interface\\Minimap\\MinimapArrow")
+    arrowTexture:SetVertexColor(1, 0.8, 0.2, 1)
+    arrowTexture:SetAlpha(1)
+
+    local distanceText = arrowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    distanceText:SetPoint("TOP", arrowFrame, "BOTTOM", 0, -2)
+    distanceText:SetText("Distance (approx): --")
+
+    local timeText = arrowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    timeText:SetPoint("TOP", distanceText, "BOTTOM", 0, -2)
+    timeText:SetText("Estimated Time (rough): --")
+
+    local travelText = arrowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    travelText:SetPoint("TOP", timeText, "BOTTOM", 0, -2)
+    travelText:SetText("Travel to: --")
+
+    frame:SetScript("OnHide", function()
+        searchBox:ClearFocus()
+    end)
+
+    self.ui = {
+        frame = frame,
+        modeDropdown = modeDropdown,
+        zoneDropdown = zoneDropdown,
+        searchBox = searchBox,
+        resultsDropdown = resultsDropdown,
+        descriptionScrollFrame = scrollFrame,
+        descriptionScrollChild = scrollChild,
+        descriptionText = descriptionText,
+        favoriteButton = favoriteButton,
+        arrowFrame = arrowFrame,
+        arrowTexture = arrowTexture,
+        distanceText = distanceText,
+        timeText = timeText,
+        travelText = travelText,
+    }
 end
 
-function EdgeOfAzeroth:ToggleMainWindow()
-    if not self.ui or not self.ui.mainFrame then
-        return
-    end
-
-    if self.ui.mainFrame:IsShown() then
-        self.ui.mainFrame:Hide()
+function EOA:ToggleMainFrame()
+    if self.ui.frame:IsShown() then
+        self.ui.frame:Hide()
     else
-        self.ui.mainFrame:Show()
+        self.ui.frame:Show()
     end
 end
 
-function EdgeOfAzeroth:Initialize()
+function EOA:Initialize()
     if self.initialized then
         return
     end
-
     self.initialized = true
 
-    EdgeOfAzerothDB = EdgeOfAzerothDB or {}
-    EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
-
-    self:CreateMainWindow()
-    self:CreateArrowFrame()
-
-    local updateFrame = CreateFrame("Frame")
-    updateFrame:SetScript("OnUpdate", function(_, elapsed)
-        EdgeOfAzeroth:UpdateNavigation(elapsed)
-    end)
-
-    self.ui.updateFrame = updateFrame
+    EnsureDB()
+    self:CreateUI()
+    self:RefreshModeDropdown()
+    self:RefreshZoneDropdown()
+    self:RefreshFilteredEntries()
 
     SLASH_EDGEOFAZEROTH1 = "/eoa"
-    SlashCmdList["EDGEOFAZEROTH"] = function()
-        EdgeOfAzeroth:ToggleMainWindow()
+    SlashCmdList.EDGEOFAZEROTH = function()
+        EOA:ToggleMainFrame()
     end
+
+    local ticker = CreateFrame("Frame")
+    ticker:SetScript("OnUpdate", function(_, elapsed)
+        EOA:OnUpdate(elapsed)
+    end)
+
+    local eventFrame = CreateFrame("Frame")
+    eventFrame:RegisterEvent("WORLD_MAP_UPDATE")
+    eventFrame:SetScript("OnEvent", function()
+        EOA:UpdateWorldMapPin(EOA:GetSelectedEntry())
+    end)
 end
 
-EdgeOfAzeroth:Initialize()
+local loader = CreateFrame("Frame")
+loader:RegisterEvent("ADDON_LOADED")
+loader:SetScript("OnEvent", function(_, event, loadedAddon)
+    if event == "ADDON_LOADED" and loadedAddon == addonName then
+        EOA:Initialize()
+    end
+end)

@@ -1,8 +1,8 @@
 ## Interface: 11404
 ## Title: Edge Of Azeroth
-## Notes: Explore the forgotten edges of Azeroth. Type /eoa to open the navigation window.
-## Author: EdgeOfAzeroth
-## Version: 2.0.0
+## Notes: Azeroth Atlas for Scenic Spots, Dungeon Entrances, and Farming. Type /eoa to open.
+## Author: Dennis Hilk | www.dennishilk.com
+## Version: 1.0
 ## SavedVariables: EdgeOfAzerothDB
 
 EdgeOfAzeroth.lua
