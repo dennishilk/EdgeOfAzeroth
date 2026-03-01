@@ -6,6 +6,7 @@ local EdgeOfAzeroth = {
     activeDestination = nil,
     updateInterval = 0.10,
     elapsedSinceUpdate = 0,
+    previousDistanceYards = nil,
     defaultYardsPerMapUnit = 10000,
     mapYardsPerUnit = {
         [1415] = 10300, -- Eastern Plaguelands
@@ -28,7 +29,7 @@ local EdgeOfAzeroth = {
 }
 
 local Destinations = {
-    { name = "The Mushroom Circle", mapID = 1420, x = 0.684, y = 0.458, description = "A ring of pale mushrooms rests in a quiet hollow where the pines swallow most sound before it can travel. The air hangs cold and damp, and the moonlight seems to gather here more brightly than anywhere else in Tirisfal. Broken roots push through dark soil in spirals that look almost deliberate, as if the earth itself remembers old rites. At a certain in-game time, a hidden event may briefly occur here." },
+    { name = "The Tirisfal Clearing", mapID = 1420, x = 0.517, y = 0.559, description = "A quiet clearing in Tirisfal where reports suggest rare phenomena may appear at certain in-game times, though nothing is guaranteed." },
     { name = "The Scarlet Watchtower Rear Grounds", mapID = 1420, x = 0.777, y = 0.558, description = "Behind the old tower, the land falls into a strip of trampled grass and abandoned supply pits no patrol ever really watches. Wind threads between weathered stakes and torn pennants, carrying the faint creak of wood from the structure above. It feels like a place built for urgency and then forgotten in silence. Even in daylight, the rear grounds keep the uneasy stillness of a battlefield after the march has passed." },
     { name = "Hidden Coastline North of Deathknell", mapID = 1420, x = 0.312, y = 0.255, description = "North of Deathknell, the land drops into a lonely coast where gray water beats against black stone in relentless rhythm. Sea mist curls through the trees and blurs the horizon until sky and ocean become one slate-colored wall. Few travelers come this far, leaving only gull cries and the scrape of pebbles beneath your boots. It is a stark edge of Lordaeron where the world feels unfinished and beautifully empty." },
 
@@ -105,6 +106,7 @@ end
 function EdgeOfAzeroth:StopNavigation(silent)
     self.navigationActive = false
     self.activeDestination = nil
+    self.previousDistanceYards = nil
 
     if self.ui and self.ui.arrowFrame then
         self.ui.arrowFrame:Hide()
@@ -135,6 +137,7 @@ function EdgeOfAzeroth:StartNavigation()
 
     self.activeDestination = Destinations[self.selectedDestinationIndex]
     self.navigationActive = true
+    self.previousDistanceYards = nil
 
     if self.ui and self.ui.arrowFrame then
         self.ui.arrowFrame:Show()
@@ -243,6 +246,10 @@ function EdgeOfAzeroth:UpdateNavigation(elapsed)
             UIErrorsFrame:AddMessage("You have reached the edge of Azeroth.", 1.0, 0.8, 0.2, 3)
         end
 
+        if UIFrameFadeOut and self.ui and self.ui.arrowFrame then
+            UIFrameFadeOut(self.ui.arrowFrame, 1, 1, 0)
+        end
+
         if PlaySound then
             if SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE then
                 PlaySound(SOUNDKIT.UI_QUEST_COMPLETE, "Master")
@@ -254,8 +261,14 @@ function EdgeOfAzeroth:UpdateNavigation(elapsed)
         return
     end
 
+    local smoothedDistance = distanceYards
+    if type(self.previousDistanceYards) == "number" then
+        smoothedDistance = self.previousDistanceYards + ((distanceYards - self.previousDistanceYards) * 0.25)
+    end
+    self.previousDistanceYards = smoothedDistance
+
     if self.ui and self.ui.distanceText then
-        self.ui.distanceText:SetText(string.format("Distance (approx): %d yards", math.floor(distanceYards + 0.5)))
+        self.ui.distanceText:SetText(string.format("Distance (approx): %d yards", math.floor(smoothedDistance + 0.5)))
     end
 
     local travelSeconds = self:GetTravelTimeSeconds(distanceYards)
@@ -268,7 +281,7 @@ end
 
 function EdgeOfAzeroth:CreateArrowFrame()
     local frame = CreateFrame("Frame", addonName .. "ArrowFrame", UIParent)
-    frame:SetSize(160, 160)
+    frame:SetSize(120, 120)
     frame:SetPoint("TOP", UIParent, "TOP", 0, -40)
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(200)
@@ -277,9 +290,8 @@ function EdgeOfAzeroth:CreateArrowFrame()
 
     local texture = frame:CreateTexture(nil, "ARTWORK")
     texture:SetAllPoints(frame)
-    texture:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
+    texture:SetTexture("Interface\\Minimap\\MinimapArrow")
     texture:SetAlpha(1)
-    texture:SetVertexColor(1, 0.8, 0.2, 1)
 
     local distanceText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     distanceText:SetPoint("TOP", frame, "BOTTOM", 0, -6)
@@ -296,7 +308,7 @@ function EdgeOfAzeroth:CreateArrowFrame()
 end
 
 function EdgeOfAzeroth:CreateMainWindow()
-    local frame = CreateFrame("Frame", addonName .. "MainFrame", UIParent, "UIPanelDialogTemplate")
+    local frame = CreateFrame("Frame", addonName .. "MainFrame", UIParent, "BasicFrameTemplateWithInset")
     frame:SetSize(470, 340)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
@@ -306,12 +318,17 @@ function EdgeOfAzeroth:CreateMainWindow()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:Hide()
 
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("TOP", frame, "TOP", 0, -14)
+    if frame.CloseButton then
+        frame.CloseButton:ClearAllPoints()
+        frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+    end
+
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    title:SetPoint("TOP", frame, "TOP", 0, -8)
     title:SetText("Edge Of Azeroth")
 
     local dropdownLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    dropdownLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -42)
+    dropdownLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -44)
     dropdownLabel:SetText("Destination")
 
     local dropdown = CreateFrame("Frame", addonName .. "DestinationDropdown", frame, "UIDropDownMenuTemplate")
@@ -322,8 +339,8 @@ function EdgeOfAzeroth:CreateMainWindow()
     descriptionLabel:SetText("Description")
 
     local descriptionScrollFrame = CreateFrame("ScrollFrame", addonName .. "DescriptionScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    descriptionScrollFrame:SetPoint("TOPLEFT", descriptionLabel, "BOTTOMLEFT", 0, -6)
-    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, 64)
+    descriptionScrollFrame:SetPoint("TOPLEFT", descriptionLabel, "BOTTOMLEFT", 4, -8)
+    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 66)
 
     local descriptionContent = CreateFrame("Frame", nil, descriptionScrollFrame)
     descriptionContent:SetSize(410, 1)
