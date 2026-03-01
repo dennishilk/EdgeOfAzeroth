@@ -28,44 +28,29 @@ local EdgeOfAzeroth = {
 }
 
 local Destinations = {
-    { name = "Quel'Lithien Northern Wall", mapID = 1415, x = 0.862, y = 0.182, description = "Collapsed elven stonework overlooking the cold northern frontier." },
-    { name = "Tyr's Hand Outer Orchards", mapID = 1415, x = 0.774, y = 0.747, description = "Abandoned fields where faded banners still move in the wind." },
-    { name = "Marris Stead Backroad", mapID = 1415, x = 0.309, y = 0.795, description = "A forgotten cart route swallowed by weeds and plague-scarred mud." },
+    { name = "The Mushroom Circle", mapID = 1420, x = 0.684, y = 0.458, description = "A ring of pale mushrooms rests in a quiet hollow where the pines swallow most sound before it can travel. The air hangs cold and damp, and the moonlight seems to gather here more brightly than anywhere else in Tirisfal. Broken roots push through dark soil in spirals that look almost deliberate, as if the earth itself remembers old rites. At a certain in-game time, a hidden event may briefly occur here." },
+    { name = "The Scarlet Watchtower Rear Grounds", mapID = 1420, x = 0.777, y = 0.558, description = "Behind the old tower, the land falls into a strip of trampled grass and abandoned supply pits no patrol ever really watches. Wind threads between weathered stakes and torn pennants, carrying the faint creak of wood from the structure above. It feels like a place built for urgency and then forgotten in silence. Even in daylight, the rear grounds keep the uneasy stillness of a battlefield after the march has passed." },
+    { name = "Hidden Coastline North of Deathknell", mapID = 1420, x = 0.312, y = 0.255, description = "North of Deathknell, the land drops into a lonely coast where gray water beats against black stone in relentless rhythm. Sea mist curls through the trees and blurs the horizon until sky and ocean become one slate-colored wall. Few travelers come this far, leaving only gull cries and the scrape of pebbles beneath your boots. It is a stark edge of Lordaeron where the world feels unfinished and beautifully empty." },
 
-    { name = "Caer Darrow Shoreline", mapID = 1422, x = 0.686, y = 0.777, description = "A silent lakeside edge beneath the shadow of old scholomantic stone." },
-    { name = "Sorrow Hill Grave Margin", mapID = 1422, x = 0.467, y = 0.503, description = "Uneven graves and dead trees mark a haunting western boundary." },
+    { name = "Karazhan Back Ridge", mapID = 1430, x = 0.478, y = 0.811, description = "Behind Karazhan, a high ridge rises above the dead grasslands like a balcony facing a haunted kingdom. From here, the tower's silhouette looms at an angle most never see, all broken spires and cold geometry. The wind rushes up the stone face in long, low moans that never seem to end. It is a vantage of awe and dread, where every shadow suggests an old secret watching back." },
+    { name = "Southern Unused Ravine", mapID = 1430, x = 0.615, y = 0.853, description = "Far to the south, a cut in the earth forms a ravine that seems bypassed by roads, camps, and history itself. Sparse grass clings to cracked soil while jagged outcrops cast thin, sharp shadows across the floor below. The area holds an abandoned quality, as if caravans once planned to pass through and changed course forever. In the hush between wind gusts, the ravine feels like a forgotten draft of the world." },
 
-    { name = "Frostwhisper Gorge", mapID = 1452, x = 0.607, y = 0.204, description = "A narrow frozen cleft where the wind drowns out every sound." },
-    { name = "Mazthoril Ice Shelf", mapID = 1452, x = 0.502, y = 0.416, description = "Blue ice cliffs and ancient carvings hidden above deep snow." },
+    { name = "Frostwhisper Gorge Edge", mapID = 1452, x = 0.593, y = 0.224, description = "At the gorge edge, Winterspring opens into a sudden drop where blue-white ice disappears into a dim, frozen throat. Snow sweeps across the lip in ribbons, occasionally revealing old stone and claw marks beneath. The cold is absolute here, biting through armor and silence alike. Looking down feels like staring into an ancient wound the mountain never healed." },
+    { name = "Unused Northern Snow Shelf", mapID = 1452, x = 0.482, y = 0.063, description = "Near the northern limit, a broad snow shelf stretches toward nowhere, untouched by beasts or banners. The horizon is a pale blur, and drifting powder erases your tracks almost as quickly as they appear. There are no fires, no voices, only the faint crack of distant ice under deep frost. It is the kind of place that makes Azeroth feel vast, indifferent, and strangely peaceful." },
 
-    { name = "Bay of Storms Cliffline", mapID = 1447, x = 0.706, y = 0.184, description = "Jagged cliffs over dark waters far from Azeroth's busy ports." },
-    { name = "Hetaera's Clutch Back Ridge", mapID = 1447, x = 0.167, y = 0.722, description = "A secluded ridge where dragons circle above abandoned ruins." },
+    { name = "Bay of Storms Cliff Edge", mapID = 1447, x = 0.731, y = 0.196, description = "The cliff edge above the Bay of Storms drops hard into churning black water lit by cold flashes of sea-light. Salt wind tears across the rock shelf and carries the roar of waves up in uneven bursts. Ruined stonework nearby hints at lives and empires that once looked out over this same violent coast. Standing here feels like balancing between beauty and ruin at the very rim of Kalimdor." },
+    { name = "Abandoned Highborne Ruin Platform", mapID = 1447, x = 0.602, y = 0.313, description = "A raised platform of cracked Highborne stone sits half-swallowed by weeds, overlooking broken terraces and distant surf. Faded arcane motifs still trace the floor, worn smooth by time and weather rather than footsteps. The silence is deep enough that the smallest movement echoes against the old masonry. It is a suspended fragment of a fallen age, waiting without expectation for anyone to remember it." },
 
-    { name = "Southwind Break Dunes", mapID = 1451, x = 0.427, y = 0.846, description = "Scoured dunes and buried stone paths at the edge of the hives." },
-    { name = "Twilight Base Camp Ruins", mapID = 1451, x = 0.289, y = 0.366, description = "Tattered camps and ritual remains scattered across dry rock." },
+    { name = "Far Northern Farmland", mapID = 1422, x = 0.449, y = 0.071, description = "In the far north of Western Plaguelands, the fields thin into bleak rows of dead crops and collapsed fencing. The soil is pale and dry, and every gust stirs dust where grain once grew in abundance. No lanterns burn here now, only crows circling low over the empty lots. The farmland is quiet in a way that speaks of loss more than decay." },
+    { name = "Caer Darrow Outer Lake Margin", mapID = 1422, x = 0.715, y = 0.841, description = "Beyond Caer Darrow's familiar approach, the outer lake margin curves into reeds and half-flooded stone. Ripples lap against broken steps that descend into dark water, reflecting the island in warped fragments. The academy's shadow stretches long across the shoreline, turning evening into something heavier. It is a solemn border where still water and old sorcery meet." },
 
-    { name = "Karazhan Service Gate", mapID = 1430, x = 0.406, y = 0.777, description = "A hidden approach to the tower where few travelers ever stop." },
-    { name = "Dreadmaul Ravine Overlook", mapID = 1430, x = 0.636, y = 0.711, description = "A high overlook above broken roads and old ogre territory." },
+    { name = "Western Outer Dunes Beyond Hive Patrols", mapID = 1451, x = 0.246, y = 0.566, description = "West of the known patrol paths, the dunes roll in long ridges that hide you from nearly every sign of civilization. Sand hisses across buried chitin and ancient rock, drawing shifting lines that vanish by the next minute. The sky feels enormous here, and the sun turns every crest into burning gold by day and ash-gray by dusk. It is a desert margin where even the hives seem to lose interest in pursuit." },
 
-    { name = "Abyssal Sands Edge", mapID = 1446, x = 0.565, y = 0.821, description = "A lonely desert margin where sandstorms erase every footprint." },
-    { name = "Steamwheedle Back Docks", mapID = 1446, x = 0.684, y = 0.286, description = "Remote goblin piers facing endless sea and rusted machinery." },
+    { name = "Root Descent Cliffs Below Rut'theran", mapID = 1438, x = 0.589, y = 0.962, description = "Below Rut'theran, the giant roots descend into steep cliffs laced with mist and spray from the sea below. Bark and stone fuse together in impossible angles, forming narrow ledges above a sheer drop. Looking up, Teldrassil's canopy blots out much of the sky, turning daylight into a muted emerald glow. It feels like standing between world-tree myth and open ocean, with no clear path back." },
 
-    { name = "Seradane Treeline", mapID = 1425, x = 0.624, y = 0.246, description = "Ancient boughs and misted trails near the quiet northern woods." },
-    { name = "Overlook Cliffs", mapID = 1425, x = 0.722, y = 0.635, description = "Steep cliffs above distant valleys and isolated gryphon winds." },
+    { name = "Seradane Outer Treeline", mapID = 1425, x = 0.651, y = 0.211, description = "At Seradane's outer treeline, ancient trunks gather into a dim border where the wind barely reaches the ground. Moss-covered roots knot over old stone and form natural thresholds into deeper forest. The air carries a soft, constant rustle, as though unseen wings pass overhead and vanish. It is a tranquil but watchful edge, where the wild feels old enough to remember everything." },
 
-    { name = "Windshear Crag West Face", mapID = 1442, x = 0.597, y = 0.545, description = "Sheer rock walls and scattered lumber camps far from main roads." },
-
-    { name = "Helm's Bed Lake Shelf", mapID = 1426, x = 0.827, y = 0.507, description = "A quiet lakeside shelf tucked beneath snowy granite peaks." },
-
-    { name = "Rut'theran Outer Roots", mapID = 1438, x = 0.566, y = 0.935, description = "Massive roots descending into mist where ships rarely linger." },
-
-    { name = "Irontree Northern Ridge", mapID = 1448, x = 0.573, y = 0.163, description = "Charred forest ridges overlooking the corrupted northern canopy." },
-
-    { name = "Mannoroc Upper Shelf", mapID = 1443, x = 0.548, y = 0.756, description = "A cracked plateau above demonic scars and shattered stone." },
-
-    { name = "Dreadmaul Post Outer Wastes", mapID = 1419, x = 0.511, y = 0.843, description = "Parched red earth fading into distant blackened hills." },
-
-    { name = "Misty Reed Far Bank", mapID = 1435, x = 0.787, y = 0.345, description = "Still marsh water and thick reeds beyond the usual patrol paths." },
+    { name = "Irontree Northern Charred Ridge", mapID = 1448, x = 0.564, y = 0.138, description = "North of Irontree, a charred ridge rises above Felwood in blackened layers of ash, bark, and exposed rock. Burnt trunks stand like spears against a bruised sky while faint green haze drifts through the hollows below. Every step crunches with brittle remnants of a forest that never truly recovered. The ridge is grim and unforgettable, a stark line between survival and corruption." },
 }
 
 local function ChatMessage(message)
@@ -275,13 +260,17 @@ end
 
 function EdgeOfAzeroth:CreateArrowFrame()
     local frame = CreateFrame("Frame", addonName .. "ArrowFrame", UIParent)
-    frame:SetSize(96, 96)
-    frame:SetPoint("TOP", UIParent, "TOP", 0, -70)
+    frame:SetSize(160, 160)
+    frame:SetPoint("TOP", UIParent, "TOP", 0, -40)
+    frame:SetFrameStrata("HIGH")
+    frame:SetFrameLevel(200)
+    frame:SetToplevel(true)
     frame:Hide()
 
     local texture = frame:CreateTexture(nil, "ARTWORK")
     texture:SetAllPoints(frame)
     texture:SetTexture("Interface\\MINIMAP\\ROTATING-MINIMAP-ARROW")
+    texture:SetVertexColor(1, 0.8, 0.2, 1)
 
     local distanceText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     distanceText:SetPoint("TOP", frame, "BOTTOM", 0, -6)
@@ -325,19 +314,39 @@ function EdgeOfAzeroth:CreateMainWindow()
 
     local descriptionScrollFrame = CreateFrame("ScrollFrame", addonName .. "DescriptionScrollFrame", frame, "UIPanelScrollFrameTemplate")
     descriptionScrollFrame:SetPoint("TOPLEFT", descriptionLabel, "BOTTOMLEFT", 0, -6)
-    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -34, 64)
+    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, 64)
 
     local descriptionContent = CreateFrame("Frame", nil, descriptionScrollFrame)
-    descriptionContent:SetSize(390, 180)
+    descriptionContent:SetSize(410, 1)
 
     local descriptionText = descriptionContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     descriptionText:SetPoint("TOPLEFT", descriptionContent, "TOPLEFT", 0, 0)
-    descriptionText:SetPoint("RIGHT", descriptionContent, "RIGHT", 0, 0)
+    descriptionText:SetPoint("TOPRIGHT", descriptionContent, "TOPRIGHT", 0, 0)
     descriptionText:SetJustifyH("LEFT")
     descriptionText:SetJustifyV("TOP")
+    descriptionText:SetNonSpaceWrap(true)
     descriptionText:SetText("Select a destination to begin navigation.")
 
     descriptionScrollFrame:SetScrollChild(descriptionContent)
+
+    local function UpdateDescriptionHeight()
+        local textHeight = descriptionText:GetStringHeight() or 0
+        descriptionContent:SetHeight(math.max(180, math.ceil(textHeight) + 8))
+    end
+
+    descriptionScrollFrame:HookScript("OnMouseWheel", function(scrollSelf, delta)
+        local scrollBar = scrollSelf and scrollSelf.ScrollBar
+        if not scrollBar or not scrollBar.GetMinMaxValues or not scrollBar.GetValue or not scrollBar.SetValue then
+            return
+        end
+
+        local minVal, maxVal = scrollBar:GetMinMaxValues()
+        if maxVal and maxVal > 0 then
+            local current = scrollBar:GetValue() or 0
+            scrollBar:SetValue(math.max(minVal or 0, math.min(maxVal, current - (delta * 20))))
+        end
+    end)
+    descriptionScrollFrame:EnableMouseWheel(true)
 
     local startButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     startButton:SetSize(180, 28)
@@ -358,6 +367,8 @@ function EdgeOfAzeroth:CreateMainWindow()
         EdgeOfAzeroth.selectedDestinationIndex = destinationIndex
         UIDropDownMenu_SetText(dropdown, destination.name)
         descriptionText:SetText(destination.description)
+        UpdateDescriptionHeight()
+        descriptionScrollFrame:SetVerticalScroll(0)
     end
 
     UIDropDownMenu_Initialize(dropdown, function(_, level)
@@ -377,6 +388,7 @@ function EdgeOfAzeroth:CreateMainWindow()
 
     UIDropDownMenu_SetWidth(dropdown, 345)
     UIDropDownMenu_SetText(dropdown, "Choose a destination")
+    UpdateDescriptionHeight()
 
     startButton:SetScript("OnClick", function()
         EdgeOfAzeroth:StartNavigation()
