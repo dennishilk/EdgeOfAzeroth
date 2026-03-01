@@ -1,5 +1,3 @@
-local addonName = ...
-
 EdgeOfAzeroth = EdgeOfAzeroth or {}
 local EOA = EdgeOfAzeroth
 
@@ -796,7 +794,7 @@ function EOA:Initialize()
     self:RefreshFilteredEntries()
 
     SLASH_EDGEOFAZEROTH1 = "/eoa"
-    SlashCmdList.EDGEOFAZEROTH = function()
+    SlashCmdList["EDGEOFAZEROTH"] = function()
         EOA:ToggleMainFrame()
     end
 
@@ -812,10 +810,4 @@ function EOA:Initialize()
     end)
 end
 
-local loader = CreateFrame("Frame")
-loader:RegisterEvent("ADDON_LOADED")
-loader:SetScript("OnEvent", function(_, event, loadedAddon)
-    if event == "ADDON_LOADED" and loadedAddon == addonName then
-        EOA:Initialize()
-    end
-end)
+EOA:Initialize()
