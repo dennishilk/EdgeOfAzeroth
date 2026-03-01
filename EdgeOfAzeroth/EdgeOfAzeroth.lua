@@ -26,6 +26,7 @@ local EdgeOfAzeroth = {
         [1435] = 9800,  -- Swamp of Sorrows
     },
     ui = {},
+    calibratedDestinationNames = {},
 }
 
 local Destinations = {
@@ -53,6 +54,8 @@ local Destinations = {
 
     { name = "Irontree Northern Charred Ridge", mapID = 1448, x = 0.564, y = 0.138, description = "North of Irontree, a charred ridge rises above Felwood in blackened layers of ash, bark, and exposed rock. Burnt trunks stand like spears against a bruised sky while faint green haze drifts through the hollows below. Every step crunches with brittle remnants of a forest that never truly recovered. The ridge is grim and unforgettable, a stark line between survival and corruption." },
 }
+
+local STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT = "EDGEOFAZEROTH_SAVE_CUSTOM_SPOT"
 
 local function ChatMessage(message)
     if DEFAULT_CHAT_FRAME and message then
@@ -84,6 +87,101 @@ local function GetPlayerMapPosition()
     return playerMapID, position.x, position.y
 end
 
+function EdgeOfAzeroth:GetCustomDestinations()
+    EdgeOfAzerothDB = EdgeOfAzerothDB or {}
+    EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
+    return EdgeOfAzerothDB.customSpots
+end
+
+function EdgeOfAzeroth:GetAllDestinations()
+    local all = {}
+
+    for index, destination in ipairs(Destinations) do
+        all[#all + 1] = {
+            destination = destination,
+            index = index,
+            isCustom = false,
+        }
+    end
+
+    for customIndex, destination in ipairs(self:GetCustomDestinations()) do
+        all[#all + 1] = {
+            destination = destination,
+            index = customIndex,
+            isCustom = true,
+        }
+    end
+
+    return all
+end
+
+function EdgeOfAzeroth:GetSelectedDestination()
+    if type(self.selectedDestinationIndex) ~= "number" then
+        return nil
+    end
+
+    local allDestinations = self:GetAllDestinations()
+    local selectedEntry = allDestinations[self.selectedDestinationIndex]
+    return selectedEntry and selectedEntry.destination or nil
+end
+
+function EdgeOfAzeroth:GetSelectedDestinationDisplayName()
+    local destination = self:GetSelectedDestination()
+    if not destination then
+        return nil
+    end
+
+    local name = destination.name or "Unknown Destination"
+    if self.calibratedDestinationNames[name] then
+        return name .. " (calibrated)"
+    end
+
+    return name
+end
+
+function EdgeOfAzeroth:RefreshDropdown()
+    if not self.ui or not self.ui.destinationDropdown then
+        return
+    end
+
+    UIDropDownMenu_Initialize(self.ui.destinationDropdown, function(_, level)
+        if level ~= 1 then
+            return
+        end
+
+        for mergedIndex, entry in ipairs(EdgeOfAzeroth:GetAllDestinations()) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = entry.destination.name
+            info.func = function()
+                EdgeOfAzeroth.selectedDestinationIndex = mergedIndex
+                if EdgeOfAzeroth.ui and EdgeOfAzeroth.ui.descriptionText then
+                    EdgeOfAzeroth.ui.descriptionText:SetText(entry.destination.description or "")
+                end
+
+                if EdgeOfAzeroth.ui and EdgeOfAzeroth.ui.updateDescriptionHeight then
+                    EdgeOfAzeroth.ui.updateDescriptionHeight()
+                end
+
+                if EdgeOfAzeroth.ui and EdgeOfAzeroth.ui.descriptionScrollFrame then
+                    EdgeOfAzeroth.ui.descriptionScrollFrame:SetVerticalScroll(0)
+                end
+
+                UIDropDownMenu_SetText(EdgeOfAzeroth.ui.destinationDropdown, EdgeOfAzeroth:GetSelectedDestinationDisplayName() or entry.destination.name)
+                EdgeOfAzeroth:UpdateWorldMapPin(entry.destination)
+            end
+            info.checked = (EdgeOfAzeroth.selectedDestinationIndex == mergedIndex)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    if self.selectedDestinationIndex then
+        local displayName = self:GetSelectedDestinationDisplayName()
+        if displayName then
+            UIDropDownMenu_SetText(self.ui.destinationDropdown, displayName)
+        end
+    end
+end
+
 function EdgeOfAzeroth:GetMapYardsPerUnit(mapID)
     if not mapID then
         return self.defaultYardsPerMapUnit
@@ -107,6 +205,7 @@ function EdgeOfAzeroth:StopNavigation(silent)
     self.navigationActive = false
     self.activeDestination = nil
     self.previousDistanceYards = nil
+    self:UpdateWorldMapPin(nil)
 
     if self.ui and self.ui.arrowFrame then
         self.ui.arrowFrame:Hide()
@@ -130,14 +229,16 @@ function EdgeOfAzeroth:StopNavigation(silent)
 end
 
 function EdgeOfAzeroth:StartNavigation()
-    if not self.selectedDestinationIndex or not Destinations[self.selectedDestinationIndex] then
+    local selectedDestination = self:GetSelectedDestination()
+    if not selectedDestination then
         ChatMessage("Please select a destination first.")
         return
     end
 
-    self.activeDestination = Destinations[self.selectedDestinationIndex]
+    self.activeDestination = selectedDestination
     self.navigationActive = true
     self.previousDistanceYards = nil
+    self:UpdateWorldMapPin(self.activeDestination)
 
     if self.ui and self.ui.arrowFrame then
         self.ui.arrowFrame:Show()
@@ -147,7 +248,7 @@ function EdgeOfAzeroth:StartNavigation()
         self.ui.arrowTexture:SetAlpha(1)
     end
 
-    ChatMessage("Navigation started to " .. self.activeDestination.name .. ".")
+    ChatMessage("Navigation started to " .. (self.activeDestination.name or "Unknown Destination") .. ".")
 end
 
 function EdgeOfAzeroth:GetTravelTimeSeconds(distanceYards)
@@ -208,6 +309,197 @@ function EdgeOfAzeroth:UpdateZoneStatus(destination)
     end
 end
 
+
+function EdgeOfAzeroth:UpdateWorldMapPin(destination)
+    if not self.ui then
+        self.ui = {}
+    end
+
+    if not self.ui.worldMapPin and WorldMapFrame and WorldMapFrame.ScrollContainer then
+        local pin = CreateFrame("Frame", nil, WorldMapFrame.ScrollContainer)
+        pin:SetSize(24, 24)
+        pin:SetFrameStrata("HIGH")
+        pin:SetFrameLevel(500)
+
+        local texture = pin:CreateTexture(nil, "ARTWORK")
+        texture:SetAllPoints(pin)
+
+        texture:SetTexture("Interface\\MINIMAP\\POIIcons")
+        texture:SetTexCoord(0.125, 0.25, 0, 0.125)
+        if not texture:GetTexture() then
+            texture:SetTexture("Interface\\WorldMap\\Skull_64")
+        end
+        if not texture:GetTexture() then
+            texture:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")
+        end
+
+        pin.texture = texture
+        pin:Hide()
+        self.ui.worldMapPin = pin
+    end
+
+    local pin = self.ui.worldMapPin
+    if not pin then
+        return
+    end
+
+    if type(destination) ~= "table" or type(destination.x) ~= "number" or type(destination.y) ~= "number" then
+        pin:Hide()
+        return
+    end
+
+    if not WorldMapFrame or not WorldMapFrame.ScrollContainer then
+        pin:Hide()
+        return
+    end
+
+    local canvas = WorldMapFrame.ScrollContainer
+    local w = canvas:GetWidth()
+    local h = canvas:GetHeight()
+
+    if type(w) ~= "number" or type(h) ~= "number" or w <= 0 or h <= 0 then
+        pin:Hide()
+        return
+    end
+
+    pin:ClearAllPoints()
+    pin:SetParent(canvas)
+    pin:SetPoint("CENTER", WorldMapFrame.ScrollContainer, "TOPLEFT", destination.x * w, -destination.y * h)
+    pin:Show()
+end
+
+function EdgeOfAzeroth:NotifyArrival()
+    local text = "You have reached the edge of Azeroth."
+    local displayed = false
+
+    if UIErrorsFrame and UIErrorsFrame.AddMessage then
+        local ok = pcall(UIErrorsFrame.AddMessage, UIErrorsFrame, text, 1.0, 0.8, 0.2, 3)
+        if ok then
+            displayed = true
+        else
+            ok = pcall(UIErrorsFrame.AddMessage, UIErrorsFrame, text)
+            if ok then
+                displayed = true
+            end
+        end
+    end
+
+    if not displayed and DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+        DEFAULT_CHAT_FRAME:AddMessage(text)
+    end
+
+    if PlaySound then
+        pcall(function()
+            if SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE then
+                PlaySound(SOUNDKIT.UI_QUEST_COMPLETE)
+            else
+                PlaySound(12889)
+            end
+        end)
+    end
+end
+
+function EdgeOfAzeroth:SetTargetToMyPosition()
+    local destination = self:GetSelectedDestination()
+    if not destination then
+        ChatMessage("Please select a destination first.")
+        return
+    end
+
+    local playerMapID, playerX, playerY = GetPlayerMapPosition()
+    if not playerMapID or not playerX or not playerY then
+        ChatMessage("Unable to determine your current position.")
+        return
+    end
+
+    destination.mapID = playerMapID
+    destination.x = playerX
+    destination.y = playerY
+    self.calibratedDestinationNames[destination.name or ""] = true
+
+    if self.ui and self.ui.destinationDropdown then
+        UIDropDownMenu_SetText(self.ui.destinationDropdown, self:GetSelectedDestinationDisplayName() or destination.name)
+    end
+
+    self:UpdateWorldMapPin(destination)
+    ChatMessage("Target updated to your current position.")
+end
+
+function EdgeOfAzeroth:SaveMyPositionAsCustomSpot()
+    local playerMapID, playerX, playerY = GetPlayerMapPosition()
+    if not playerMapID or not playerX or not playerY then
+        ChatMessage("Unable to determine your current position.")
+        return
+    end
+
+    local function SaveSpot(name)
+        local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(playerMapID)
+        local zoneName = mapInfo and mapInfo.name or "Unknown Zone"
+        local customDestinations = EdgeOfAzeroth:GetCustomDestinations()
+
+        customDestinations[#customDestinations + 1] = {
+            name = name,
+            mapID = playerMapID,
+            x = playerX,
+            y = playerY,
+            description = string.format("Custom spot in %s at %.1f, %.1f.", zoneName, playerX * 100, playerY * 100),
+        }
+
+        EdgeOfAzeroth:RefreshDropdown()
+        ChatMessage("Saved custom spot: " .. name)
+    end
+
+    local defaultName = date("EOA Spot %Y-%m-%d %H:%M")
+
+    if StaticPopup_Show and StaticPopupDialogs then
+        if not StaticPopupDialogs[STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT] then
+            StaticPopupDialogs[STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT] = {
+                text = "Name this custom spot:",
+                button1 = ACCEPT,
+                button2 = CANCEL,
+                hasEditBox = true,
+                maxLetters = 64,
+                timeout = 0,
+                whileDead = true,
+                hideOnEscape = true,
+                OnShow = function(popup)
+                    popup.editBox:SetText(defaultName)
+                    popup.editBox:HighlightText()
+                    popup.editBox:SetFocus()
+                end,
+                OnAccept = function(popup)
+                    local enteredText = popup.editBox and popup.editBox:GetText()
+                    if not enteredText or enteredText == "" then
+                        enteredText = defaultName
+                    end
+                    SaveSpot(enteredText)
+                end,
+                EditBoxOnEnterPressed = function(popup)
+                    local enteredText = popup.editBox and popup.editBox:GetText()
+                    if not enteredText or enteredText == "" then
+                        enteredText = defaultName
+                    end
+                    SaveSpot(enteredText)
+                    popup:Hide()
+                end,
+                EditBoxOnEscapePressed = function(popup)
+                    popup:Hide()
+                end,
+                preferredIndex = 3,
+            }
+        end
+
+        local popup = StaticPopup_Show(STATIC_POPUP_EOA_SAVE_CUSTOM_SPOT)
+        if popup and popup.editBox then
+            popup.editBox:SetText(defaultName)
+            popup.editBox:HighlightText()
+        end
+        return
+    end
+
+    SaveSpot(defaultName)
+end
+
 function EdgeOfAzeroth:UpdateNavigation(elapsed)
     if type(elapsed) ~= "number" then
         return
@@ -229,6 +521,8 @@ function EdgeOfAzeroth:UpdateNavigation(elapsed)
     end
 
     local destination = self.activeDestination
+    self:UpdateWorldMapPin(destination)
+
     if playerMapID ~= destination.mapID then
         self:UpdateZoneStatus(destination)
         return
@@ -241,21 +535,10 @@ function EdgeOfAzeroth:UpdateNavigation(elapsed)
 
     if distanceYards < 10 then
         self:StopNavigation(true)
-
-        if UIErrorsFrame and UIErrorsFrame.AddMessage then
-            UIErrorsFrame:AddMessage("You have reached the edge of Azeroth.", 1.0, 0.8, 0.2, 3)
-        end
+        self:NotifyArrival()
 
         if UIFrameFadeOut and self.ui and self.ui.arrowFrame then
             UIFrameFadeOut(self.ui.arrowFrame, 1, 1, 0)
-        end
-
-        if PlaySound then
-            if SOUNDKIT and SOUNDKIT.UI_QUEST_COMPLETE then
-                PlaySound(SOUNDKIT.UI_QUEST_COMPLETE, "Master")
-            else
-                PlaySound(12889, "Master")
-            end
         end
 
         return
@@ -285,6 +568,7 @@ function EdgeOfAzeroth:CreateArrowFrame()
     frame:SetPoint("TOP", UIParent, "TOP", 0, -40)
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(200)
+    frame:SetAlpha(1)
     frame:SetToplevel(true)
     frame:Hide()
 
@@ -309,7 +593,7 @@ end
 
 function EdgeOfAzeroth:CreateMainWindow()
     local frame = CreateFrame("Frame", addonName .. "MainFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(470, 340)
+    frame:SetSize(500, 420)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -328,11 +612,11 @@ function EdgeOfAzeroth:CreateMainWindow()
     title:SetText("Edge Of Azeroth")
 
     local dropdownLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    dropdownLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -44)
+    dropdownLabel:SetPoint("TOPLEFT", frame.Bg, "TOPLEFT", 16, -14)
     dropdownLabel:SetText("Destination")
 
     local dropdown = CreateFrame("Frame", addonName .. "DestinationDropdown", frame, "UIDropDownMenuTemplate")
-    dropdown:SetPoint("TOPLEFT", dropdownLabel, "BOTTOMLEFT", -16, -6)
+    dropdown:SetPoint("TOPLEFT", dropdownLabel, "BOTTOMLEFT", -16, -2)
 
     local descriptionLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     descriptionLabel:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 20, -8)
@@ -340,10 +624,10 @@ function EdgeOfAzeroth:CreateMainWindow()
 
     local descriptionScrollFrame = CreateFrame("ScrollFrame", addonName .. "DescriptionScrollFrame", frame, "UIPanelScrollFrameTemplate")
     descriptionScrollFrame:SetPoint("TOPLEFT", descriptionLabel, "BOTTOMLEFT", 4, -8)
-    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 66)
+    descriptionScrollFrame:SetPoint("BOTTOMRIGHT", frame.Bg, "BOTTOMRIGHT", -26, 110)
 
     local descriptionContent = CreateFrame("Frame", nil, descriptionScrollFrame)
-    descriptionContent:SetSize(410, 1)
+    descriptionContent:SetSize(430, 1)
 
     local descriptionText = descriptionContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     descriptionText:SetPoint("TOPLEFT", descriptionContent, "TOPLEFT", 0, 0)
@@ -375,44 +659,26 @@ function EdgeOfAzeroth:CreateMainWindow()
     descriptionScrollFrame:EnableMouseWheel(true)
 
     local startButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    startButton:SetSize(180, 28)
-    startButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 22, 20)
+    startButton:SetSize(140, 24)
+    startButton:SetPoint("BOTTOMLEFT", frame.Bg, "BOTTOMLEFT", 14, 14)
     startButton:SetText("Start Navigation")
 
     local stopButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    stopButton:SetSize(180, 28)
-    stopButton:SetPoint("LEFT", startButton, "RIGHT", 12, 0)
+    stopButton:SetSize(140, 24)
+    stopButton:SetPoint("LEFT", startButton, "RIGHT", 8, 0)
     stopButton:SetText("Stop Navigation")
 
-    local function OnDestinationSelected(_, destinationIndex)
-        local destination = Destinations[destinationIndex]
-        if not destination then
-            return
-        end
+    local calibrateButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    calibrateButton:SetSize(170, 24)
+    calibrateButton:SetPoint("TOPLEFT", startButton, "BOTTOMLEFT", 0, -6)
+    calibrateButton:SetText("Set Target to My Position")
 
-        EdgeOfAzeroth.selectedDestinationIndex = destinationIndex
-        UIDropDownMenu_SetText(dropdown, destination.name)
-        descriptionText:SetText(destination.description)
-        UpdateDescriptionHeight()
-        descriptionScrollFrame:SetVerticalScroll(0)
-    end
+    local saveCustomButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    saveCustomButton:SetSize(170, 24)
+    saveCustomButton:SetPoint("LEFT", calibrateButton, "RIGHT", 8, 0)
+    saveCustomButton:SetText("Save My Position as Custom Spot")
 
-    UIDropDownMenu_Initialize(dropdown, function(_, level)
-        if level ~= 1 then
-            return
-        end
-
-        for index, destination in ipairs(Destinations) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = destination.name
-            info.func = OnDestinationSelected
-            info.arg1 = index
-            info.checked = (EdgeOfAzeroth.selectedDestinationIndex == index)
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end)
-
-    UIDropDownMenu_SetWidth(dropdown, 345)
+    UIDropDownMenu_SetWidth(dropdown, 360)
     UIDropDownMenu_SetText(dropdown, "Choose a destination")
     UpdateDescriptionHeight()
 
@@ -424,7 +690,21 @@ function EdgeOfAzeroth:CreateMainWindow()
         EdgeOfAzeroth:StopNavigation(false)
     end)
 
+    calibrateButton:SetScript("OnClick", function()
+        EdgeOfAzeroth:SetTargetToMyPosition()
+    end)
+
+    saveCustomButton:SetScript("OnClick", function()
+        EdgeOfAzeroth:SaveMyPositionAsCustomSpot()
+    end)
+
     self.ui.mainFrame = frame
+    self.ui.destinationDropdown = dropdown
+    self.ui.descriptionText = descriptionText
+    self.ui.descriptionScrollFrame = descriptionScrollFrame
+    self.ui.updateDescriptionHeight = UpdateDescriptionHeight
+
+    self:RefreshDropdown()
 end
 
 function EdgeOfAzeroth:ToggleMainWindow()
@@ -445,6 +725,9 @@ function EdgeOfAzeroth:Initialize()
     end
 
     self.initialized = true
+
+    EdgeOfAzerothDB = EdgeOfAzerothDB or {}
+    EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
 
     self:CreateMainWindow()
     self:CreateArrowFrame()
