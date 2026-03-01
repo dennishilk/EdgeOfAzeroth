@@ -12,6 +12,24 @@ EOA.smoothDistance = nil
 EOA.updateAccumulator = 0
 EOA.updateRate = 0.10
 EOA.defaultYardsPerUnit = 10000
+EOA.explorerModeEnabled = false
+EOA.explorerUpdateAccumulator = 0
+
+local FIELD_RESEARCH_CATEGORIES = {
+    { value = "DUNGEON", text = "DUNGEON" },
+    { value = "CLOTH", text = "CLOTH" },
+    { value = "MINING", text = "MINING" },
+    { value = "HERBS", text = "HERBS" },
+    { value = "GRIND", text = "GRIND" },
+}
+
+local DENSITY_OPTIONS = {
+    { value = 1, text = "1" },
+    { value = 2, text = "2" },
+    { value = 3, text = "3" },
+    { value = 4, text = "4" },
+    { value = 5, text = "5" },
+}
 
 local MODE_OPTIONS = {
     { value = "ALL", text = "All" },
@@ -33,6 +51,44 @@ local function GetMapName(mapID)
         return info.name
     end
     return string.format("Map %d", tonumber(mapID) or 0)
+end
+
+local function GetProfessionSkillByName(skillName)
+    if not GetProfessions or not GetProfessionInfo then
+        return nil
+    end
+
+    local prof1, prof2, archaeology, fishing, cooking, firstAid = GetProfessions()
+    local professions = { prof1, prof2, archaeology, fishing, cooking, firstAid }
+    for _, prof in ipairs(professions) do
+        if prof then
+            local name, _, rank = GetProfessionInfo(prof)
+            if name == skillName then
+                return rank
+            end
+        end
+    end
+
+    return nil
+end
+
+local function GetPlayerTargetSnapshot()
+    local mapID, x, y = EOA:GetPlayerMapPosition()
+    local zoneName = mapID and GetMapName(mapID) or (GetZoneText and GetZoneText()) or "Unknown"
+    local targetName = UnitExists("target") and UnitName("target") or nil
+    local targetLevel = UnitExists("target") and UnitLevel("target") or nil
+
+    return {
+        mapID = mapID,
+        x = x,
+        y = y,
+        zoneName = zoneName,
+        targetName = targetName,
+        targetLevel = targetLevel,
+        playerLevel = UnitLevel("player") or 0,
+        miningLevel = GetProfessionSkillByName("Mining"),
+        herbalismLevel = GetProfessionSkillByName("Herbalism"),
+    }
 end
 
 EOA.AtlasData = {
@@ -474,6 +530,14 @@ local function FormatTime(seconds)
 end
 
 function EOA:OnUpdate(elapsed)
+    if self.explorerModeEnabled then
+        self.explorerUpdateAccumulator = self.explorerUpdateAccumulator + elapsed
+        if self.explorerUpdateAccumulator >= 0.2 then
+            self.explorerUpdateAccumulator = 0
+            self:UpdateExplorerOverlay()
+        end
+    end
+
     self.updateAccumulator = self.updateAccumulator + elapsed
     if self.updateAccumulator < self.updateRate then
         return
@@ -587,6 +651,440 @@ function EOA:SaveCustomSpotFromPlayerPosition()
     DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Saved custom spot: " .. customEntry.name)
 end
 
+
+function EOA:CreateExplorerOverlay()
+    if self.ui and self.ui.explorerOverlay then
+        return
+    end
+
+    local overlay = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    overlay:SetSize(250, 140)
+    overlay:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 20, -20)
+    overlay:SetMovable(true)
+    overlay:EnableMouse(true)
+    overlay:RegisterForDrag("LeftButton")
+    overlay:SetScript("OnDragStart", function(frame)
+        frame:StartMoving()
+    end)
+    overlay:SetScript("OnDragStop", function(frame)
+        frame:StopMovingOrSizing()
+    end)
+    overlay:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 12,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    overlay:SetBackdropColor(0, 0, 0, 0.8)
+    overlay:SetFrameStrata("HIGH")
+    overlay:Hide()
+
+    local title = overlay:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOPLEFT", overlay, "TOPLEFT", 10, -10)
+    title:SetText("Explorer Mode")
+
+    local text = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    text:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    text:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", -10, 10)
+    text:SetJustifyH("LEFT")
+    text:SetJustifyV("TOP")
+    text:SetText("")
+
+    self.ui.explorerOverlay = overlay
+    self.ui.explorerOverlayText = text
+end
+
+function EOA:UpdateExplorerOverlay()
+    if not self.explorerModeEnabled or not self.ui or not self.ui.explorerOverlayText then
+        return
+    end
+
+    local snapshot = GetPlayerTargetSnapshot()
+    local xText = snapshot.x and string.format("%.3f", snapshot.x) or "---"
+    local yText = snapshot.y and string.format("%.3f", snapshot.y) or "---"
+    local targetLevel = snapshot.targetLevel and snapshot.targetLevel >= 0 and tostring(snapshot.targetLevel) or "?"
+    local mining = snapshot.miningLevel and tostring(snapshot.miningLevel) or "-"
+    local herbs = snapshot.herbalismLevel and tostring(snapshot.herbalismLevel) or "-"
+
+    self.ui.explorerOverlayText:SetText(
+        "Zone: " .. (snapshot.zoneName or "Unknown") .. "\n" ..
+        "MapID: " .. (snapshot.mapID or "N/A") .. "\n" ..
+        "X/Y: " .. xText .. " / " .. yText .. "\n" ..
+        "Player Level: " .. (snapshot.playerLevel or 0) .. "\n" ..
+        "Target: " .. (snapshot.targetName or "-") .. "\n" ..
+        "Target Level: " .. targetLevel .. "\n" ..
+        "Mining: " .. mining .. "  Herbalism: " .. herbs
+    )
+end
+
+function EOA:SetExplorerMode(enabled)
+    self.explorerModeEnabled = enabled and true or false
+    self.explorerUpdateAccumulator = 0
+
+    if self.ui and self.ui.explorerToggleButton then
+        if self.explorerModeEnabled then
+            self.ui.explorerToggleButton:SetText("Explorer Mode: ON")
+        else
+            self.ui.explorerToggleButton:SetText("Explorer Mode: OFF")
+        end
+    end
+
+    if self.ui and self.ui.explorerOverlay then
+        if self.explorerModeEnabled then
+            self.ui.explorerOverlay:Show()
+            self:UpdateExplorerOverlay()
+        else
+            self.ui.explorerOverlay:Hide()
+        end
+    end
+end
+
+function EOA:ToggleExplorerMode()
+    self:SetExplorerMode(not self.explorerModeEnabled)
+end
+
+function EOA:CreateRecordPopup()
+    if self.ui and self.ui.recordPopup then
+        return
+    end
+
+    local popup = CreateFrame("Frame", nil, UIParent, "BasicFrameTemplateWithInset")
+    popup:SetSize(430, 500)
+    popup:SetPoint("CENTER", UIParent, "CENTER", 0, 30)
+    popup:SetFrameStrata("DIALOG")
+    popup:Hide()
+
+    popup.title = popup:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    popup.title:SetPoint("TOP", popup, "TOP", 0, -6)
+    popup.title:SetText("Field Research Record")
+
+    local y = -34
+    local left = 18
+
+    local function CreateLabel(text)
+        local label = popup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        label:SetPoint("TOPLEFT", popup, "TOPLEFT", left, y)
+        label:SetText(text)
+        y = y - 20
+        return label
+    end
+
+    local function CreateEditBox(width, height, multiline)
+        local box = CreateFrame("EditBox", nil, popup, "InputBoxTemplate")
+        box:SetSize(width, height or 20)
+        box:SetPoint("TOPLEFT", popup, "TOPLEFT", left, y)
+        box:SetAutoFocus(false)
+        if multiline then
+            box:SetMultiLine(true)
+            box:SetFontObject(ChatFontNormal)
+        end
+        y = y - ((height or 20) + 10)
+        return box
+    end
+
+    CreateLabel("Category")
+    local categoryDropdown = CreateFrame("Frame", "EdgeOfAzerothRecordCategoryDropdown", popup, "UIDropDownMenuTemplate")
+    categoryDropdown:SetPoint("TOPLEFT", popup, "TOPLEFT", left - 16, y + 8)
+    UIDropDownMenu_SetWidth(categoryDropdown, 160)
+    y = y - 36
+
+    CreateLabel("Name")
+    local nameBox = CreateEditBox(380, 20, false)
+
+    CreateLabel("Level Recommended")
+    local levelRecommendedBox = CreateEditBox(80, 20, false)
+
+    CreateLabel("Mob Level Min")
+    local mobMinBox = CreateEditBox(80, 20, false)
+
+    CreateLabel("Mob Level Max")
+    local mobMaxBox = CreateEditBox(80, 20, false)
+
+    CreateLabel("Skill Required")
+    local skillRequiredBox = CreateEditBox(80, 20, false)
+
+    CreateLabel("Resource")
+    local resourceBox = CreateEditBox(180, 20, false)
+
+    CreateLabel("Density")
+    local densityDropdown = CreateFrame("Frame", "EdgeOfAzerothRecordDensityDropdown", popup, "UIDropDownMenuTemplate")
+    densityDropdown:SetPoint("TOPLEFT", popup, "TOPLEFT", left - 16, y + 8)
+    UIDropDownMenu_SetWidth(densityDropdown, 80)
+    y = y - 36
+
+    CreateLabel("Danger")
+    local dangerDropdown = CreateFrame("Frame", "EdgeOfAzerothRecordDangerDropdown", popup, "UIDropDownMenuTemplate")
+    dangerDropdown:SetPoint("TOPLEFT", popup, "TOPLEFT", left - 16, y + 8)
+    UIDropDownMenu_SetWidth(dangerDropdown, 80)
+    y = y - 36
+
+    CreateLabel("Notes")
+    local notesBg = CreateFrame("Frame", nil, popup, "BackdropTemplate")
+    notesBg:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 8,
+        edgeSize = 10,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    notesBg:SetBackdropColor(0, 0, 0, 0.45)
+    notesBg:SetSize(385, 80)
+    notesBg:SetPoint("TOPLEFT", popup, "TOPLEFT", left - 2, y + 2)
+
+    local notesBox = CreateFrame("EditBox", nil, notesBg)
+    notesBox:SetSize(370, 68)
+    notesBox:SetPoint("TOPLEFT", notesBg, "TOPLEFT", 6, -6)
+    notesBox:SetMultiLine(true)
+    notesBox:SetAutoFocus(false)
+    notesBox:SetFontObject(ChatFontNormal)
+    y = y - 94
+
+    local errorText = popup:CreateFontString(nil, "OVERLAY", "GameFontRedSmall")
+    errorText:SetPoint("TOPLEFT", popup, "TOPLEFT", left, y)
+    errorText:SetPoint("TOPRIGHT", popup, "TOPRIGHT", -18, y)
+    errorText:SetJustifyH("LEFT")
+    errorText:SetText("")
+
+    local saveButton = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
+    saveButton:SetSize(120, 24)
+    saveButton:SetPoint("BOTTOMLEFT", popup, "BOTTOMLEFT", left, 14)
+    saveButton:SetText("Save")
+
+    local cancelButton = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
+    cancelButton:SetSize(120, 24)
+    cancelButton:SetPoint("LEFT", saveButton, "RIGHT", 10, 0)
+    cancelButton:SetText("Cancel")
+    cancelButton:SetScript("OnClick", function()
+        popup:Hide()
+    end)
+
+    self.ui.recordPopup = popup
+    self.ui.recordCategoryDropdown = categoryDropdown
+    self.ui.recordNameBox = nameBox
+    self.ui.recordLevelRecommendedBox = levelRecommendedBox
+    self.ui.recordMobMinBox = mobMinBox
+    self.ui.recordMobMaxBox = mobMaxBox
+    self.ui.recordSkillRequiredBox = skillRequiredBox
+    self.ui.recordResourceBox = resourceBox
+    self.ui.recordDensityDropdown = densityDropdown
+    self.ui.recordDangerDropdown = dangerDropdown
+    self.ui.recordNotesBox = notesBox
+    self.ui.recordErrorText = errorText
+    self.ui.recordSaveButton = saveButton
+
+    UIDropDownMenu_Initialize(categoryDropdown, function(_, level)
+        if level ~= 1 then
+            return
+        end
+
+        for _, category in ipairs(FIELD_RESEARCH_CATEGORIES) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = category.text
+            info.checked = (popup.selectedCategory == category.value)
+            info.func = function()
+                popup.selectedCategory = category.value
+                UIDropDownMenu_SetText(categoryDropdown, category.text)
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    local function InitNumberDropdown(dropdown, valueField)
+        UIDropDownMenu_Initialize(dropdown, function(_, level)
+            if level ~= 1 then
+                return
+            end
+
+            for _, option in ipairs(DENSITY_OPTIONS) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = option.text
+                info.checked = (popup[valueField] == option.value)
+                info.func = function()
+                    popup[valueField] = option.value
+                    UIDropDownMenu_SetText(dropdown, option.text)
+                end
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end)
+    end
+
+    InitNumberDropdown(densityDropdown, "selectedDensity")
+    InitNumberDropdown(dangerDropdown, "selectedDanger")
+
+    saveButton:SetScript("OnClick", function()
+        EOA:SaveRecordPopupEntry()
+    end)
+end
+
+function EOA:OpenRecordPopup(preselectedCategory)
+    self:CreateRecordPopup()
+
+    local popup = self.ui.recordPopup
+    local snapshot = GetPlayerTargetSnapshot()
+
+    popup.snapshot = snapshot
+    popup.selectedCategory = preselectedCategory
+    popup.selectedDensity = nil
+    popup.selectedDanger = nil
+
+    self.ui.recordErrorText:SetText("")
+    self.ui.recordNameBox:SetText(snapshot.targetName or snapshot.zoneName or "")
+    self.ui.recordLevelRecommendedBox:SetText(snapshot.playerLevel or "")
+    self.ui.recordMobMinBox:SetText(snapshot.targetLevel and snapshot.targetLevel > 0 and snapshot.targetLevel or "")
+    self.ui.recordMobMaxBox:SetText(snapshot.targetLevel and snapshot.targetLevel > 0 and snapshot.targetLevel or "")
+    self.ui.recordSkillRequiredBox:SetText("")
+    self.ui.recordResourceBox:SetText("")
+    self.ui.recordNotesBox:SetText("")
+
+    if preselectedCategory then
+        UIDropDownMenu_SetText(self.ui.recordCategoryDropdown, preselectedCategory)
+    else
+        UIDropDownMenu_SetText(self.ui.recordCategoryDropdown, "Select")
+    end
+    UIDropDownMenu_SetText(self.ui.recordDensityDropdown, "Select")
+    UIDropDownMenu_SetText(self.ui.recordDangerDropdown, "Select")
+
+    popup:Show()
+end
+
+function EOA:ValidateRecordNumericField(rawValue, label)
+    if rawValue == nil or rawValue == "" then
+        return nil
+    end
+
+    local numberValue = tonumber(rawValue)
+    if not numberValue then
+        return nil, label .. " must be a number."
+    end
+
+    return numberValue
+end
+
+function EOA:SaveRecordPopupEntry()
+    local popup = self.ui and self.ui.recordPopup
+    if not popup or not popup.snapshot then
+        return
+    end
+
+    local snapshot = popup.snapshot
+    if not snapshot.mapID or not snapshot.x or not snapshot.y then
+        self.ui.recordErrorText:SetText("Invalid position data (mapID/x/y missing).")
+        return
+    end
+
+    local category = popup.selectedCategory
+    if not category or category == "" then
+        self.ui.recordErrorText:SetText("Category is required.")
+        return
+    end
+
+    local levelRecommended, levelErr = self:ValidateRecordNumericField(self.ui.recordLevelRecommendedBox:GetText(), "Level Recommended")
+    if levelErr then
+        self.ui.recordErrorText:SetText(levelErr)
+        return
+    end
+
+    local mobLevelMin, minErr = self:ValidateRecordNumericField(self.ui.recordMobMinBox:GetText(), "Mob Level Min")
+    if minErr then
+        self.ui.recordErrorText:SetText(minErr)
+        return
+    end
+
+    local mobLevelMax, maxErr = self:ValidateRecordNumericField(self.ui.recordMobMaxBox:GetText(), "Mob Level Max")
+    if maxErr then
+        self.ui.recordErrorText:SetText(maxErr)
+        return
+    end
+
+    local skillRequired, skillErr = self:ValidateRecordNumericField(self.ui.recordSkillRequiredBox:GetText(), "Skill Required")
+    if skillErr then
+        self.ui.recordErrorText:SetText(skillErr)
+        return
+    end
+
+    local timestamp = time()
+    local id = "custom_" .. timestamp
+    local name = self.ui.recordNameBox:GetText()
+    if not name or name == "" then
+        name = snapshot.targetName or snapshot.zoneName or "Custom Spot"
+    end
+
+    local description = self.ui.recordNotesBox:GetText() or ""
+    local resource = self.ui.recordResourceBox:GetText() or ""
+
+    local customEntry = {
+        id = id,
+        name = name,
+        mapID = snapshot.mapID,
+        x = snapshot.x,
+        y = snapshot.y,
+        type = category,
+        zoneGroup = "Custom",
+        tags = { "custom", "field-research" },
+        description = description,
+        levelRecommended = levelRecommended,
+        mobLevelMin = mobLevelMin,
+        mobLevelMax = mobLevelMax,
+        skillRequired = skillRequired,
+        resource = resource,
+        density = popup.selectedDensity,
+        danger = popup.selectedDanger,
+        targetName = snapshot.targetName,
+        targetLevel = snapshot.targetLevel,
+        zoneName = snapshot.zoneName,
+        playerLevel = snapshot.playerLevel,
+    }
+
+    table.insert(EdgeOfAzerothDB.customSpots, customEntry)
+
+    self:RefreshZoneDropdown()
+    self:RefreshFilteredEntries()
+
+    self.selectedEntryID = id
+    self:RefreshResultsDropdown()
+    self:UpdateSelectionUI()
+
+    self.ui.recordErrorText:SetText("")
+    popup:Hide()
+
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Field Research saved: " .. (name or "Custom Spot"))
+end
+
+function EOA:QuickRecordSpot(entryType)
+    local snapshot = GetPlayerTargetSnapshot()
+    if not snapshot.mapID or not snapshot.x or not snapshot.y then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Unable to record spot at this location.")
+        return
+    end
+
+    local timestamp = time()
+    local id = "custom_" .. timestamp
+    local name = snapshot.targetName or snapshot.zoneName or "Custom Spot"
+
+    local customEntry = {
+        id = id,
+        name = name,
+        mapID = snapshot.mapID,
+        x = snapshot.x,
+        y = snapshot.y,
+        type = entryType,
+        zoneGroup = "Custom",
+        tags = { "custom", "quick-record" },
+        description = "Quick field research entry.",
+        levelRecommended = snapshot.playerLevel,
+        targetName = snapshot.targetName,
+        targetLevel = snapshot.targetLevel,
+    }
+
+    table.insert(EdgeOfAzerothDB.customSpots, customEntry)
+    self:RefreshZoneDropdown()
+    self:RefreshFilteredEntries()
+
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Quick record saved: " .. name .. " [" .. entryType .. "]")
+end
 function EOA:ToggleFavoriteForSelected()
     local entry = self:GetSelectedEntry()
     if not entry then
@@ -745,6 +1243,24 @@ function EOA:CreateUI()
         EOA:ToggleFavoriteForSelected()
     end)
 
+    local explorerToggleButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    explorerToggleButton:ClearAllPoints()
+    explorerToggleButton:SetPoint("LEFT", favoriteButton, "RIGHT", 10, 0)
+    explorerToggleButton:SetSize(150, 24)
+    explorerToggleButton:SetText("Explorer Mode: OFF")
+    explorerToggleButton:SetScript("OnClick", function()
+        EOA:ToggleExplorerMode()
+    end)
+
+    local recordSpotButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    recordSpotButton:ClearAllPoints()
+    recordSpotButton:SetPoint("LEFT", saveCustomButton, "RIGHT", 160, 0)
+    recordSpotButton:SetSize(170, 24)
+    recordSpotButton:SetText("Record Current Spot")
+    recordSpotButton:SetScript("OnClick", function()
+        EOA:OpenRecordPopup()
+    end)
+
     local arrowFrame = CreateFrame("Frame", "EdgeOfAzerothArrowFrame", UIParent)
     arrowFrame:SetSize(120, 120)
     arrowFrame:SetPoint("TOP", UIParent, "TOP", 0, -40)
@@ -783,12 +1299,17 @@ function EOA:CreateUI()
         descriptionScrollChild = scrollChild,
         descriptionText = descriptionText,
         favoriteButton = favoriteButton,
+        explorerToggleButton = explorerToggleButton,
+        recordSpotButton = recordSpotButton,
         arrowFrame = arrowFrame,
         arrowTexture = arrowTexture,
         distanceText = distanceText,
         timeText = timeText,
         travelText = travelText,
     }
+
+    self:CreateExplorerOverlay()
+    self:CreateRecordPopup()
 end
 
 function EOA:ToggleMainFrame()
@@ -834,8 +1355,25 @@ function EOA:Initialize()
 end
 
 SLASH_EDGEOFAZEROTH1 = "/eoa"
-SlashCmdList["EDGEOFAZEROTH"] = function()
-    if EdgeOfAzeroth and EdgeOfAzeroth.ToggleMainFrame then
+SlashCmdList["EDGEOFAZEROTH"] = function(msg)
+    if not EdgeOfAzeroth then
+        return
+    end
+
+    local command = msg and string.lower((msg:gsub("^%s+", ""):gsub("%s+$", ""))) or ""
+
+    if command == "record" then
+        EdgeOfAzeroth:OpenRecordPopup()
+        return
+    elseif command == "dungeon" then
+        EdgeOfAzeroth:QuickRecordSpot("DUNGEON")
+        return
+    elseif command == "farm" then
+        EdgeOfAzeroth:QuickRecordSpot("FARM")
+        return
+    end
+
+    if EdgeOfAzeroth.ToggleMainFrame then
         EdgeOfAzeroth:ToggleMainFrame()
     end
 end
