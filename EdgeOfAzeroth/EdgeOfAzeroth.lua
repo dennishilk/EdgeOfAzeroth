@@ -647,16 +647,17 @@ function EOA:CreateUI()
     searchLabel:SetText("Search")
 
     local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-    searchBox:SetWidth(160)
-    searchBox:SetHeight(24)
+    searchBox:SetSize(140, 24)
     searchBox:ClearAllPoints()
     searchBox:SetPoint("TOPLEFT", searchLabel, "BOTTOMLEFT", 0, -4)
     searchBox:SetAutoFocus(false)
-    searchBox:SetMaxLetters(80)
+    searchBox:SetTextInsets = nil
+    searchBox:SetScript("OnEscapePressed", searchBox.ClearFocus)
+    searchBox:SetMaxLetters(60)
 
     local placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     placeholder:SetPoint("LEFT", searchBox, "LEFT", 6, 0)
-    placeholder:SetWidth(178)
+    placeholder:SetWidth(130)
     placeholder:SetWordWrap(false)
     placeholder:SetText("Search (e.g. runecloth, BRD, Desolace)")
 
