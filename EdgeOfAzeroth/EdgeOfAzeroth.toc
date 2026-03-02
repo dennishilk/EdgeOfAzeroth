@@ -6,3 +6,5 @@
 ## SavedVariables: EdgeOfAzerothDB
 
 EdgeOfAzeroth.lua
+
+EOA_Data_DungeonsAndRaids.lua
