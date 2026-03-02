@@ -774,6 +774,10 @@ function EOA:OnUpdate(elapsed)
     local facing = GetPlayerFacing() or 0
     local targetBearing = math.atan2(dx, dy)
     local relativeRotation = targetBearing - facing
+
+    -- 180 degree correction
+    relativeRotation = relativeRotation + math.pi
+
     self.ui.arrowTexture:SetRotation(relativeRotation)
 
     self.ui.distanceText:SetText(string.format("Distance (approx): %d yards", math.max(0, math.floor(self.smoothDistance))))
