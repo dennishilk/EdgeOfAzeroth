@@ -373,24 +373,59 @@ end
 function EOA:RefreshResultsList()
     local rows = self.ui.resultRows
     local rowHeight = 22
+    local listWidth = math.max((self.ui.resultsScrollFrame:GetWidth() or 0) - 4, 1)
 
-    if #self.filteredEntries == 0 then
-        if not rows[1] then
-            local row = CreateFrame("Button", nil, self.ui.resultsScrollChild)
-            row:SetHeight(rowHeight)
-            row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.label:SetPoint("LEFT", row, "LEFT", 8, 0)
-            row.label:SetPoint("RIGHT", row, "RIGHT", -8, 0)
-            row.label:SetJustifyH("LEFT")
-            rows[1] = row
+    local function EnsureResultRow(index)
+        local row = rows[index]
+        if row then
+            row:SetWidth(listWidth)
+            return row
         end
 
-        rows[1]:ClearAllPoints()
-        rows[1]:SetPoint("TOPLEFT", self.ui.resultsScrollChild, "TOPLEFT", 0, 0)
-        rows[1]:SetPoint("TOPRIGHT", self.ui.resultsScrollChild, "TOPRIGHT", 0, 0)
-        rows[1]:Show()
-        rows[1]:Disable()
-        rows[1].label:SetText(self:T("NO_RESULTS"))
+        row = CreateFrame("Button", nil, self.ui.resultsScrollChild)
+        row:SetHeight(rowHeight)
+        row:SetWidth(listWidth)
+
+        row.background = row:CreateTexture(nil, "BACKGROUND")
+        row.background:SetAllPoints()
+        row.background:SetColorTexture(0, 0, 0, 0.25)
+
+        row.highlightTexture = row:CreateTexture(nil, "HIGHLIGHT")
+        row.highlightTexture:SetAllPoints()
+        row.highlightTexture:SetColorTexture(1, 1, 1, 0.08)
+
+        row.selectedTexture = row:CreateTexture(nil, "ARTWORK")
+        row.selectedTexture:SetAllPoints()
+        row.selectedTexture:SetColorTexture(1, 0.8, 0, 0.15)
+        row.selectedTexture:Hide()
+
+        row.text = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        row.text:SetPoint("LEFT", row, "LEFT", 8, 0)
+        row.text:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+        row.text:SetJustifyH("LEFT")
+
+        row:SetScript("OnClick", function(button)
+            EOA.selectedEntryID = button.entryID
+            EOA:RefreshResultsList()
+            EOA:UpdateSelectionUI()
+        end)
+
+        rows[index] = row
+        return row
+    end
+
+    if #self.filteredEntries == 0 then
+        local row = EnsureResultRow(1)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", self.ui.resultsScrollChild, "TOPLEFT", 0, 0)
+        row:SetPoint("TOPRIGHT", self.ui.resultsScrollChild, "TOPRIGHT", 0, 0)
+        row:Show()
+        row:Disable()
+        row.entryID = nil
+        row.text:SetText(self:T("NO_RESULTS"))
+        if row.selectedTexture then
+            row.selectedTexture:Hide()
+        end
 
         for i = 2, #rows do
             rows[i]:Hide()
@@ -402,40 +437,20 @@ function EOA:RefreshResultsList()
     end
 
     for index, entry in ipairs(self.filteredEntries) do
-        local row = rows[index]
-        if not row then
-            row = CreateFrame("Button", nil, self.ui.resultsScrollChild)
-            row:SetHeight(rowHeight)
-            row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-            row.selectedTexture = row:CreateTexture(nil, "BACKGROUND")
-            row.selectedTexture:SetAllPoints()
-            row.selectedTexture:SetColorTexture(0.25, 0.45, 0.8, 0.35)
-            row.selectedTexture:Hide()
-
-            row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.label:SetPoint("LEFT", row, "LEFT", 8, 0)
-            row.label:SetPoint("RIGHT", row, "RIGHT", -8, 0)
-            row.label:SetJustifyH("LEFT")
-
-            row:SetScript("OnClick", function(button)
-                EOA.selectedEntryID = button.entryID
-                EOA:RefreshResultsList()
-                EOA:UpdateSelectionUI()
-            end)
-
-            rows[index] = row
-        end
+        local row = EnsureResultRow(index)
 
         row:Enable()
         row.entryID = entry.id
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", self.ui.resultsScrollChild, "TOPLEFT", 0, -((index - 1) * rowHeight))
         row:SetPoint("TOPRIGHT", self.ui.resultsScrollChild, "TOPRIGHT", 0, -((index - 1) * rowHeight))
-        row.label:SetText(GetEntryDisplayText(entry))
-        if self.selectedEntryID == entry.id then
-            row.selectedTexture:Show()
-        else
-            row.selectedTexture:Hide()
+        row.text:SetText(GetEntryDisplayText(entry))
+        if row.selectedTexture then
+            if self.selectedEntryID == entry.id then
+                row.selectedTexture:Show()
+            else
+                row.selectedTexture:Hide()
+            end
         end
         row:Show()
     end
