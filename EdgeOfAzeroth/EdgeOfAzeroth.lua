@@ -179,12 +179,10 @@ local function MergeAllEntries()
 
     for _, entry in ipairs(merged) do
         if entry.type == "FARM" then
-            if entry.category == "XP" or entry.category == "CLOTH" then
-                entry.mobLevelMin = entry.mobLevelMin or 0
+            if entry.category == "XP" or entry.category == "CLOTH" or entry.category == "REPUTATION" or entry.category == "TREASURE" then
+                entry.levelRecommended = entry.levelRecommended or entry.levelMin or entry.mobLevelMin or 0
             elseif entry.category == "HERBS" or entry.category == "MINING" then
                 entry.skillRequired = entry.skillRequired or 0
-            elseif entry.category == "REPUTATION" or entry.category == "TREASURE" then
-                entry.levelRecommended = entry.levelRecommended or 0
             end
         end
     end
@@ -300,8 +298,8 @@ function EOA:RefreshFilteredEntries()
             local cat = self.currentFarmCategory
 
             if cat == "XP" or cat == "CLOTH" then
-                local aLevel = a.mobLevelMin or 0
-                local bLevel = b.mobLevelMin or 0
+                local aLevel = a.levelRecommended or 0
+                local bLevel = b.levelRecommended or 0
                 if aLevel ~= bLevel then
                     return aLevel < bLevel
                 end
@@ -323,15 +321,7 @@ function EOA:RefreshFilteredEntries()
                         return entry.skillRequired or 0
                     end
 
-                    if entry.mobLevelMin then
-                        return entry.mobLevelMin
-                    end
-
-                    if entry.levelRecommended then
-                        return entry.levelRecommended
-                    end
-
-                    return 0
+                    return entry.levelRecommended or 0
                 end
 
                 local aProgression = getProgressionValue(a)
@@ -484,7 +474,7 @@ local function GetEntryDisplayText(entry)
     if entry.category == "HERBS" or entry.category == "MINING" then
         displayText = displayText .. " [Skill " .. (entry.skillRequired or 0) .. "]"
     elseif entry.category == "XP" or entry.category == "CLOTH" then
-        displayText = displayText .. " [" .. (entry.mobLevelMin or 0) .. "+]"
+        displayText = displayText .. " [" .. (entry.levelRecommended or 0) .. "+]"
     elseif entry.category == "REPUTATION" or entry.category == "TREASURE" then
         displayText = displayText .. " [" .. (entry.levelRecommended or 0) .. "+]"
     elseif entry.levelMin and entry.levelMax then
@@ -493,6 +483,20 @@ local function GetEntryDisplayText(entry)
         displayText = displayText .. " [" .. entry.levelMin .. "]"
     end
     return displayText
+end
+
+local function EntryMeetsProgressionRequirement(entry)
+    local playerLevel = UnitLevel("player") or 0
+
+    if entry.category == "HERBS" then
+        local herbalismSkill = GetProfessionSkillByName("Herbalism") or 0
+        return (entry.skillRequired or 0) <= herbalismSkill
+    elseif entry.category == "MINING" then
+        local miningSkill = GetProfessionSkillByName("Mining") or 0
+        return (entry.skillRequired or 0) <= miningSkill
+    end
+
+    return (entry.levelRecommended or 0) <= playerLevel
 end
 
 function EOA:RefreshResultsList()
@@ -569,7 +573,18 @@ function EOA:RefreshResultsList()
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", self.ui.resultsScrollChild, "TOPLEFT", 0, -((index - 1) * rowHeight))
         row:SetPoint("TOPRIGHT", self.ui.resultsScrollChild, "TOPRIGHT", 0, -((index - 1) * rowHeight))
-        row.text:SetText(GetEntryDisplayText(entry))
+        local meetsRequirement = EntryMeetsProgressionRequirement(entry)
+        local displayText = GetEntryDisplayText(entry)
+        if not meetsRequirement then
+            displayText = displayText .. " (Locked)"
+        end
+
+        row.text:SetText(displayText)
+        if meetsRequirement then
+            row.text:SetTextColor(1, 0.82, 0, 1)
+        else
+            row.text:SetTextColor(1, 0.2, 0.2, 1)
+        end
         if row.selectedTexture then
             if self.selectedEntryID == entry.id then
                 row.selectedTexture:Show()
