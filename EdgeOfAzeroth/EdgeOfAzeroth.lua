@@ -285,9 +285,23 @@ function EOA:RefreshFilteredEntries()
         end
     end
 
-    table.sort(self.filteredEntries, function(a, b)
-        return (a.name or "") < (b.name or "")
-    end)
+    if self.currentMode == "DUNGEON" then
+        table.sort(self.filteredEntries, function(a, b)
+            if a.levelMin ~= b.levelMin then
+                return (a.levelMin or 0) < (b.levelMin or 0)
+            end
+
+            if a.levelMax ~= b.levelMax then
+                return (a.levelMax or 0) < (b.levelMax or 0)
+            end
+
+            return (a.name or "") < (b.name or "")
+        end)
+    elseif self.currentMode == "RAID" then
+        table.sort(self.filteredEntries, function(a, b)
+            return (a.levelMin or 0) < (b.levelMin or 0)
+        end)
+    end
 
     local selectedStillVisible = false
     for _, entry in ipairs(self.filteredEntries) do
