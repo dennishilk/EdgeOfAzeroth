@@ -1,3 +1,5 @@
+EOA_DATA = EOA_DATA or {}
+
 EdgeOfAzeroth = EdgeOfAzeroth or {}
 local EOA = EdgeOfAzeroth
 
@@ -92,31 +94,6 @@ local function GetPlayerTargetSnapshot()
     }
 end
 
-EOA.AtlasData = {
-    { id = "scenic_darkshore_cliffs", name = "Cliffs of Auberdine", mapID = 1439, x = 0.386, y = 0.438, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "coast", "sunset", "elven" }, description = "The high cliffs above Auberdine look out over a restless sea and moonlit stone arches. The route is straightforward from the road and safe for low-level travelers if they avoid hostile wildlife. Visibility is excellent, making it a favorite place to pause and orient by landmarks. At dusk, the surf and sky create a dramatic horizon that feels unmistakably classic." },
-    { id = "scenic_azshara_bay", name = "Bay of Storms Overlook", mapID = 1447, x = 0.778, y = 0.196, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "azshara", "cliff", "ocean" }, description = "This overlook sits above Azshara's fractured coast where waves strike black rock in rhythmic bursts. The path is accessible by ground travel and requires no exploits or unusual movement. Ruined Highborne structures nearby provide clear visual anchors for navigation and screenshots. The location captures the wild, unfinished grandeur that defines old Azeroth's shorelines." },
-    { id = "scenic_winterspring_frostsaber", name = "Frostsaber Ridge", mapID = 1452, x = 0.494, y = 0.159, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "snow", "ridge", "winter" }, description = "Frostsaber Ridge rises above the snowfields with long sightlines across northern Winterspring. Reaching it is reliable by the established mountain routes and does not require out-of-bounds travel. The open white terrain makes map-based calibration simple and repeatable for testing. In clear weather, the area feels vast and quiet, with only wind and distant creature calls." },
-    { id = "scenic_tanaris_dunes", name = "Tanaris Singing Dunes", mapID = 1446, x = 0.557, y = 0.296, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "desert", "dunes", "sunrise" }, description = "The dunes east of Gadgetzan form layered sand ridges that are easy to approach by road and open terrain. The broad landscape helps validate arrow direction at long ranges without dense obstacle clutter. Creature density is moderate, so short stops are usually safe with normal awareness. The warm light and sweeping sand patterns make this one of Kalimdor's most cinematic plains." },
-    { id = "scenic_ungoro_rim", name = "Un'Goro Crater Rim", mapID = 1449, x = 0.468, y = 0.138, type = "SCENIC", zoneGroup = "Kalimdor", tags = { "volcanic", "jungle", "vista" }, description = "From the crater rim, the basin opens below in a wide green bowl framed by volcanic stone. The route is established and reachable on foot using normal zone pathways. Elevation changes here are useful for testing map pin updates while preserving stable coordinates. The contrast between jungle canopy and dark rock gives the spot a striking prehistoric atmosphere." },
-    { id = "scenic_hinterlands_peak", name = "Aerie Peak Skyview", mapID = 1425, x = 0.142, y = 0.461, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "mountain", "hinterlands", "highlands" }, description = "Near Aerie Peak, the highland routes provide broad visibility over valleys and rivers below. The terrain is traversable through normal paths and flight points, with no gimmicks required. It is a practical place to compare map and minimap awareness while navigating uneven contours. Clear weather turns the region into a layered panorama of pine, stone, and distant coast." },
-    { id = "scenic_swamp_ruins", name = "Sunken Ruins Causeway", mapID = 1435, x = 0.695, y = 0.532, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "swamp", "ruins", "mist" }, description = "The old causeway through the swamp passes weathered masonry and shallow flooded ground. Access is uncomplicated by road, making it dependable for repeat visits during testing sessions. The area offers strong ambient visuals with fog, water reflections, and ruined silhouettes. It feels ancient and quiet, with a persistent sense of forgotten history." },
-    { id = "scenic_plaguelands_lake", name = "Caer Darrow Shoreline", mapID = 1422, x = 0.701, y = 0.734, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "lake", "scholomance", "somber" }, description = "The lake around Caer Darrow provides a stark, memorable setting with dark water and cold stone. The shoreline can be reached by standard routes and supports precise coordinate checks near clear landmarks. It is useful for validating map pin placement because the water edge creates obvious positional references. The scene carries a grim stillness that fits the surrounding plague-scarred lands." },
-    { id = "scenic_deadwind_pass", name = "Deadwind Southern Ridge", mapID = 1430, x = 0.536, y = 0.780, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "karazhan", "ridge", "twilight" }, description = "South of Karazhan, a barren ridge overlooks the broken roads and dead grass of Deadwind Pass. The area is reachable by normal travel and is often quiet enough for uninterrupted testing. Sparse terrain features make orientation straightforward when calibrating target points. The atmosphere is bleak and dramatic, especially when the tower silhouette dominates the horizon." },
-    { id = "scenic_dunmorogh_lake", name = "Gol'Bolar Icewater", mapID = 1426, x = 0.339, y = 0.399, type = "SCENIC", zoneGroup = "Eastern Kingdoms", tags = { "snow", "dwarf", "lake" }, description = "The frozen waters near Gol'Bolar Quarry offer a calm northern scene framed by dwarf stonework and pines. Paths are straightforward from Kharanos, so this point is ideal for early-level atlas checks. Open ice and shoreline geometry create easy visual cues for map marker verification. The region feels resilient and lived-in, with a classic dwarven frontier character." },
-
-    { id = "dungeon_deadmines", name = "The Deadmines Entrance", mapID = 1436, x = 0.420, y = 0.715, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "dm", "westfall", "instance" }, description = "The Deadmines entrance is tucked in Moonbrook's mine network and remains one of Classic's most recognizable dungeon starts. Approach is consistent along Westfall roads with familiar hostile patrols nearby. This location is practical for party rendezvous and directional arrow checks in compact terrain. The surrounding ruins reinforce the narrative of a workers' revolt turned entrenched threat." },
-    { id = "dungeon_shadowfang", name = "Shadowfang Keep Entrance", mapID = 1421, x = 0.458, y = 0.684, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "sfk", "silverpine", "instance" }, description = "Shadowfang Keep stands above Pyrewood as a clear landmark visible from much of the zone. The approach road is direct and easy to follow for repeated navigation tests. Elevation changes near the keep are useful for validating smooth distance behavior. Its gothic architecture and persistent fog make the final approach especially atmospheric." },
-    { id = "dungeon_scarlet_monastery", name = "Scarlet Monastery Entrance", mapID = 1420, x = 0.852, y = 0.322, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "sm", "tirisfal", "instance" }, description = "The Scarlet Monastery gates are located in northeastern Tirisfal and are easy to identify from the surrounding road network. Travel paths are well known, making this a stable benchmark for destination selection and pin updates. The exterior courtyard provides enough space for group assembly and coordinate calibration. It remains a high-traffic classic hub for multiple wings and level brackets." },
-    { id = "dungeon_blackrock_depths", name = "Blackrock Depths Entrance", mapID = 1435, x = 0.341, y = 0.846, type = "DUNGEON", zoneGroup = "Eastern Kingdoms", tags = { "brd", "blackrock", "instance" }, description = "Blackrock Depths is reached through Blackrock Mountain, with interior chains and platforms leading toward the instance portal. The route requires care but follows standard geometry and established travel patterns. This destination is excellent for testing precision around vertical spaces and confined approach lines. The volcanic setting gives the area a distinct industrial and militarized tone." },
-    { id = "dungeon_zulfarrak", name = "Zul'Farrak Entrance", mapID = 1446, x = 0.395, y = 0.213, type = "DUNGEON", zoneGroup = "Kalimdor", tags = { "zf", "tanaris", "instance" }, description = "Zul'Farrak rises from northern Tanaris as a broad troll city with a clear entrance approach. Open desert terrain allows clean long-distance arrow tracking before final convergence. It is straightforward to reach by mount and works well for mid-level route planning tests. The stepped sandstone architecture makes the complex visible from afar." },
-    { id = "dungeon_maraudon", name = "Maraudon Entrance", mapID = 1443, x = 0.292, y = 0.623, type = "DUNGEON", zoneGroup = "Kalimdor", tags = { "mara", "desolace", "instance" }, description = "Maraudon lies in the orange canyons of Desolace and is accessed through winding valley paths. The terrain is traversable without special movement, though nearby centaur can pressure slower groups. This point is useful for testing route persistence through curved approaches and mixed elevation. The area blends harsh stone with surprisingly vivid natural color around the caverns." },
-
-    { id = "farm_eastern_plaguebats", name = "Plaguebat Circuit", mapID = 1415, x = 0.777, y = 0.552, type = "FARM", zoneGroup = "Eastern Kingdoms", tags = { "runecloth", "bats", "vendor" }, description = "The eastern ridges host plaguebats with a practical loop for steady cloth and vendor trash farming. Pathing is simple enough to maintain momentum while avoiding unnecessary backtracking. It is suitable for solo sessions with consistent pull spacing and quick resets. The route rewards awareness but remains manageable with standard consumables and gear." },
-    { id = "farm_felwood_satyrs", name = "Felwood Satyr Camp", mapID = 1448, x = 0.375, y = 0.673, type = "FARM", zoneGroup = "Kalimdor", tags = { "felcloth", "satyr", "demons" }, description = "Felwood satyr camps are a classic destination for players seeking demonic loot tables and repeatable grinding. The area supports circular pulls with minimal dead travel between packs. Hostiles can pressure cloth classes, but terrain remains readable and practical for controlled farming. The corrupted forest visuals make long sessions feel distinct and immersive." },
-    { id = "farm_winterfall_furbolgs", name = "Winterfall Furbolg Grounds", mapID = 1452, x = 0.659, y = 0.408, type = "FARM", zoneGroup = "Kalimdor", tags = { "reputation", "furbolg", "winterspring" }, description = "Winterfall camps provide a compact grind route with clear spawn clusters in snowy terrain. Movement between targets is efficient and supports both reputation and material goals. The zone's visibility helps maintain pace and quickly identify respawn timings. This is a stable option for players who prefer structured loops over broad roaming." },
-    { id = "farm_silithus_twilight", name = "Twilight Base Camp", mapID = 1451, x = 0.483, y = 0.371, type = "FARM", zoneGroup = "Kalimdor", tags = { "twilight", "texts", "silithus" }, description = "Twilight camps in Silithus are favored for repeatable kill loops and faction-related materials. The camp layout supports route planning with clear tent clusters and short transitions. Enemy density is high enough to keep combat continuous during active periods. Sandstorm ambience and cult encampments create a harsh but focused farming environment." },
-}
-
 local function EnsureDB()
     EdgeOfAzerothDB = EdgeOfAzerothDB or {}
     EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
@@ -139,26 +116,13 @@ end
 
 local function MergeStaticDataEntries()
     local merged = {}
-    local data = rawget(_G, "EOA_DATA")
-    local staticTables = {
-        data and data.Dungeons,
-        data and data.Raids,
-        data and data.Scenic,
-        data and data.Screenshots,
-        data and data.Mining,
-        data and data.Herbs,
-        data and data.Cloth,
-        data and data.Grind,
-        data and data.PvP,
-        data and data.Utility,
-        data and data.Treasure,
-        data and data.Reputation,
-    }
 
-    for _, source in ipairs(staticTables) do
-        if type(source) == "table" then
-            for _, entry in ipairs(source) do
-                merged[#merged + 1] = entry
+    if type(EOA_DATA) == "table" then
+        for _, categoryTable in pairs(EOA_DATA) do
+            if type(categoryTable) == "table" then
+                for _, entry in ipairs(categoryTable) do
+                    merged[#merged + 1] = entry
+                end
             end
         end
     end
