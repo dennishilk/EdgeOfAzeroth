@@ -3,6 +3,35 @@ EOA_DATA = EOA_DATA or {}
 EdgeOfAzeroth = EdgeOfAzeroth or {}
 local EOA = EdgeOfAzeroth
 
+EOA.locale = "EN"
+
+function EOA:T(key)
+    local L = {
+        EN = {
+            MODE = "Mode",
+            SEARCH = "Search",
+            RESULTS = "Results",
+            START_NAV = "Start Navigation",
+            STOP_NAV = "Stop Navigation",
+            SET_TARGET_TO_MY_POSITION = "Set Target to My Position",
+            SAVE_CUSTOM_SPOT = "Save Custom Spot",
+            FAVORITE = "Favorite",
+            UNFAVORITE = "Unfavorite",
+            EXPLORER_MODE = "Explorer Mode",
+            RECORD_CURRENT_SPOT = "Record Current Spot",
+            SELECT_A_DESTINATION = "Select a destination to view details.",
+            NO_MATCHING_RESULTS = "No matching results.",
+            NO_RESULTS = "No results",
+            ZONE = "Zone",
+            ON = "ON",
+            OFF = "OFF",
+        }
+    }
+
+    local localeTable = L[self.locale] or L.EN
+    return localeTable[key] or key
+end
+
 EOA.initialized = false
 EOA.navigationActive = false
 EOA.activeEntry = nil
@@ -77,7 +106,7 @@ end
 
 local function GetPlayerTargetSnapshot()
     local mapID, x, y = EOA:GetPlayerMapPosition()
-    local zoneName = mapID and GetMapName(mapID) or (GetZoneText and GetZoneText()) or "Unknown"
+    local zoneName = mapID and GetMapName(mapID) or "Unknown"
     local targetName = UnitExists("target") and UnitName("target") or nil
     local targetLevel = UnitExists("target") and UnitLevel("target") or nil
 
@@ -251,7 +280,7 @@ function EOA:RefreshFilteredEntries()
         self.selectedEntryID = self.filteredEntries[1] and self.filteredEntries[1].id or nil
     end
 
-    self:RefreshResultsDropdown()
+    self:RefreshResultsList()
     self:UpdateSelectionUI()
 end
 
@@ -278,22 +307,25 @@ end
 function EOA:UpdateSelectionUI()
     local entry = self:GetSelectedEntry()
     if not entry then
-        self.ui.descriptionText:SetText("No matching results.")
+        self.ui.descriptionText:SetText(self:T("NO_MATCHING_RESULTS"))
         self:UpdateDescriptionHeight()
         self:UpdateWorldMapPin(nil)
-        self.ui.favoriteButton:SetText("Favorite")
+        self.ui.favoriteButton:SetText(self:T("FAVORITE"))
         return
     end
 
     local zoneName = GetMapName(entry.mapID)
-    self.ui.descriptionText:SetText((entry.description or "") .. "\n\nZone: " .. zoneName .. "\nGroup: " .. (entry.zoneGroup or "-"))
+    self.ui.descriptionText:SetText(
+        (entry.description or "") ..
+        "\n\n" .. self:T("ZONE") .. ": " .. zoneName
+    )
     self:UpdateDescriptionHeight()
 
     local favored = EdgeOfAzerothDB.favorites[entry.id]
     if favored then
-        self.ui.favoriteButton:SetText("Unfavorite")
+        self.ui.favoriteButton:SetText(self:T("UNFAVORITE"))
     else
-        self.ui.favoriteButton:SetText("Favorite")
+        self.ui.favoriteButton:SetText(self:T("FAVORITE"))
     end
 
     self:UpdateWorldMapPin(entry)
@@ -328,43 +360,91 @@ function EOA:RefreshModeDropdown()
     UIDropDownMenu_SetText(self.ui.modeDropdown, currentText)
 end
 
-function EOA:RefreshResultsDropdown()
-    UIDropDownMenu_Initialize(self.ui.resultsDropdown, function(_, level)
-        if level ~= 1 then
-            return
-        end
-
-        for _, entry in ipairs(self.filteredEntries) do
-            local displayText = entry.name or "Unknown"
-            if entry.levelMin and entry.levelMax then
-                displayText = displayText .. " [" .. entry.levelMin .. "–" .. entry.levelMax .. "]"
-            elseif entry.levelMin then
-                displayText = displayText .. " [" .. entry.levelMin .. "]"
-            end
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = displayText
-            info.checked = (self.selectedEntryID == entry.id)
-            info.func = function()
-                self.selectedEntryID = entry.id
-                UIDropDownMenu_SetText(self.ui.resultsDropdown, info.text)
-                self:UpdateSelectionUI()
-            end
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end)
-
-    local selected = self:GetSelectedEntry()
-    if selected then
-        local displayText = selected.name or "Unknown"
-        if selected.levelMin and selected.levelMax then
-            displayText = displayText .. " [" .. selected.levelMin .. "–" .. selected.levelMax .. "]"
-        elseif selected.levelMin then
-            displayText = displayText .. " [" .. selected.levelMin .. "]"
-        end
-        UIDropDownMenu_SetText(self.ui.resultsDropdown, displayText)
-    else
-        UIDropDownMenu_SetText(self.ui.resultsDropdown, "No results")
+local function GetEntryDisplayText(entry)
+    local displayText = entry.name or "Unknown"
+    if entry.levelMin and entry.levelMax then
+        displayText = displayText .. " [" .. entry.levelMin .. "–" .. entry.levelMax .. "]"
+    elseif entry.levelMin then
+        displayText = displayText .. " [" .. entry.levelMin .. "]"
     end
+    return displayText
+end
+
+function EOA:RefreshResultsList()
+    local rows = self.ui.resultRows
+    local rowHeight = 22
+
+    if #self.filteredEntries == 0 then
+        if not rows[1] then
+            local row = CreateFrame("Button", nil, self.ui.resultsScrollChild)
+            row:SetHeight(rowHeight)
+            row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            row.label:SetPoint("LEFT", row, "LEFT", 8, 0)
+            row.label:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+            row.label:SetJustifyH("LEFT")
+            rows[1] = row
+        end
+
+        rows[1]:ClearAllPoints()
+        rows[1]:SetPoint("TOPLEFT", self.ui.resultsScrollChild, "TOPLEFT", 0, 0)
+        rows[1]:SetPoint("TOPRIGHT", self.ui.resultsScrollChild, "TOPRIGHT", 0, 0)
+        rows[1]:Show()
+        rows[1]:Disable()
+        rows[1].label:SetText(self:T("NO_RESULTS"))
+
+        for i = 2, #rows do
+            rows[i]:Hide()
+        end
+
+        self.ui.resultsScrollChild:SetHeight(rowHeight)
+        self.ui.resultsScrollFrame:SetVerticalScroll(0)
+        return
+    end
+
+    for index, entry in ipairs(self.filteredEntries) do
+        local row = rows[index]
+        if not row then
+            row = CreateFrame("Button", nil, self.ui.resultsScrollChild)
+            row:SetHeight(rowHeight)
+            row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+            row.selectedTexture = row:CreateTexture(nil, "BACKGROUND")
+            row.selectedTexture:SetAllPoints()
+            row.selectedTexture:SetColorTexture(0.25, 0.45, 0.8, 0.35)
+            row.selectedTexture:Hide()
+
+            row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            row.label:SetPoint("LEFT", row, "LEFT", 8, 0)
+            row.label:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+            row.label:SetJustifyH("LEFT")
+
+            row:SetScript("OnClick", function(button)
+                EOA.selectedEntryID = button.entryID
+                EOA:RefreshResultsList()
+                EOA:UpdateSelectionUI()
+            end)
+
+            rows[index] = row
+        end
+
+        row:Enable()
+        row.entryID = entry.id
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", self.ui.resultsScrollChild, "TOPLEFT", 0, -((index - 1) * rowHeight))
+        row:SetPoint("TOPRIGHT", self.ui.resultsScrollChild, "TOPRIGHT", 0, -((index - 1) * rowHeight))
+        row.label:SetText(GetEntryDisplayText(entry))
+        if self.selectedEntryID == entry.id then
+            row.selectedTexture:Show()
+        else
+            row.selectedTexture:Hide()
+        end
+        row:Show()
+    end
+
+    for i = #self.filteredEntries + 1, #rows do
+        rows[i]:Hide()
+    end
+
+    self.ui.resultsScrollChild:SetHeight(math.max(#self.filteredEntries * rowHeight, rowHeight))
 end
 
 function EOA:UpdateWorldMapPin(entry)
@@ -597,7 +677,7 @@ function EOA:SaveCustomSpotFromPlayerPosition()
     self:RefreshFilteredEntries()
 
     self.selectedEntryID = id
-    self:RefreshResultsDropdown()
+    self:RefreshResultsList()
     self:UpdateSelectionUI()
 
     DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Saved custom spot: " .. customEntry.name)
@@ -677,9 +757,9 @@ function EOA:SetExplorerMode(enabled)
 
     if self.ui and self.ui.explorerToggleButton then
         if self.explorerModeEnabled then
-            self.ui.explorerToggleButton:SetText("Explorer Mode: ON")
+            self.ui.explorerToggleButton:SetText(self:T("EXPLORER_MODE") .. ": " .. self:T("ON"))
         else
-            self.ui.explorerToggleButton:SetText("Explorer Mode: OFF")
+            self.ui.explorerToggleButton:SetText(self:T("EXPLORER_MODE") .. ": " .. self:T("OFF"))
         end
     end
 
@@ -994,7 +1074,7 @@ function EOA:SaveRecordPopupEntry()
     self:RefreshFilteredEntries()
 
     self.selectedEntryID = id
-    self:RefreshResultsDropdown()
+    self:RefreshResultsList()
     self:UpdateSelectionUI()
 
     self.ui.recordErrorText:SetText("")
@@ -1075,7 +1155,7 @@ function EOA:CreateUI()
 
     local modeLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     modeLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -36)
-    modeLabel:SetText("Mode")
+    modeLabel:SetText(self:T("MODE"))
 
     local modeDropdown = CreateFrame("Frame", "EdgeOfAzerothModeDropdown", frame, "UIDropDownMenuTemplate")
     modeDropdown:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", -16, -2)
@@ -1083,7 +1163,7 @@ function EOA:CreateUI()
 
     local searchLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     searchLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 196, -36)
-    searchLabel:SetText("Search")
+    searchLabel:SetText(self:T("SEARCH"))
 
     local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
     searchBox:SetSize(135, 24)
@@ -1120,14 +1200,27 @@ function EOA:CreateUI()
 
     local resultsLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     resultsLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -96)
-    resultsLabel:SetText("Results")
+    resultsLabel:SetText(self:T("RESULTS"))
 
-    local resultsDropdown = CreateFrame("Frame", "EdgeOfAzerothResultsDropdown", frame, "UIDropDownMenuTemplate")
-    resultsDropdown:SetPoint("TOPLEFT", resultsLabel, "BOTTOMLEFT", -16, -2)
-    UIDropDownMenu_SetWidth(resultsDropdown, 510)
+    local resultsScrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+    resultsScrollFrame:SetPoint("TOPLEFT", resultsLabel, "BOTTOMLEFT", 0, -6)
+    resultsScrollFrame:SetSize(510, 88)
+    resultsScrollFrame:EnableMouseWheel(true)
+
+    local resultsScrollChild = CreateFrame("Frame", nil, resultsScrollFrame)
+    resultsScrollChild:SetSize(510, 88)
+    resultsScrollFrame:SetScrollChild(resultsScrollChild)
+
+    resultsScrollFrame:SetScript("OnMouseWheel", function(selfFrame, delta)
+        local current = selfFrame:GetVerticalScroll()
+        local step = 22
+        local maxScroll = math.max(0, (resultsScrollChild:GetHeight() or 0) - selfFrame:GetHeight())
+        local newValue = math.max(0, math.min(maxScroll, current - (delta * step)))
+        selfFrame:SetVerticalScroll(newValue)
+    end)
 
     local scrollFrame = CreateFrame("ScrollFrame", "EdgeOfAzerothDescriptionScroll", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 18, -155)
+    scrollFrame:SetPoint("TOPLEFT", resultsScrollFrame, "BOTTOMLEFT", 0, -10)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -34, 100)
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
@@ -1139,12 +1232,12 @@ function EOA:CreateUI()
     descriptionText:SetJustifyH("LEFT")
     descriptionText:SetJustifyV("TOP")
     descriptionText:SetWidth(490)
-    descriptionText:SetText("Select a destination to view details.")
+    descriptionText:SetText(self:T("SELECT_A_DESTINATION"))
 
     local startButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     startButton:SetSize(buttonWidth, buttonHeight)
     startButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", leftPadding, bottomPadding + buttonHeight + spacing)
-    startButton:SetText("Start Navigation")
+    startButton:SetText(self:T("START_NAV"))
     startButton:SetScript("OnClick", function()
         EOA:StartNavigation()
     end)
@@ -1152,7 +1245,7 @@ function EOA:CreateUI()
     local stopButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     stopButton:SetSize(buttonWidth, buttonHeight)
     stopButton:SetPoint("LEFT", startButton, "RIGHT", spacing, 0)
-    stopButton:SetText("Stop Navigation")
+    stopButton:SetText(self:T("STOP_NAV"))
     stopButton:SetScript("OnClick", function()
         EOA:StopNavigation(false)
     end)
@@ -1160,7 +1253,7 @@ function EOA:CreateUI()
     local calibrateButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     calibrateButton:SetSize(buttonWidth, buttonHeight)
     calibrateButton:SetPoint("LEFT", stopButton, "RIGHT", spacing, 0)
-    calibrateButton:SetText("Set Target to My Position")
+    calibrateButton:SetText(self:T("SET_TARGET_TO_MY_POSITION"))
     calibrateButton:SetScript("OnClick", function()
         EOA:CalibrateSelectedToPlayerPosition()
     end)
@@ -1169,7 +1262,7 @@ function EOA:CreateUI()
     saveCustomButton:ClearAllPoints()
     saveCustomButton:SetPoint("TOPLEFT", startButton, "BOTTOMLEFT", 6, -8)
     saveCustomButton:SetSize(200, 24)
-    saveCustomButton:SetText("Save Custom Spot")
+    saveCustomButton:SetText(self:T("SAVE_CUSTOM_SPOT"))
     saveCustomButton:SetScript("OnClick", function()
         EOA:SaveCustomSpotFromPlayerPosition()
     end)
@@ -1179,7 +1272,7 @@ function EOA:CreateUI()
     favoriteButton:SetPoint("LEFT", saveCustomButton, "RIGHT", 10, 0)
     favoriteButton:SetSize(140, 24)
     favoriteButton.fitTextWidthPadding = 40
-    favoriteButton:SetText("Favorite")
+    favoriteButton:SetText(self:T("FAVORITE"))
     favoriteButton:SetScript("OnClick", function()
         EOA:ToggleFavoriteForSelected()
     end)
@@ -1188,7 +1281,7 @@ function EOA:CreateUI()
     explorerToggleButton:ClearAllPoints()
     explorerToggleButton:SetPoint("LEFT", favoriteButton, "RIGHT", 10, 0)
     explorerToggleButton:SetSize(150, 24)
-    explorerToggleButton:SetText("Explorer Mode: OFF")
+    explorerToggleButton:SetText(self:T("EXPLORER_MODE") .. ": " .. self:T("OFF"))
     explorerToggleButton:SetScript("OnClick", function()
         EOA:ToggleExplorerMode()
     end)
@@ -1197,7 +1290,7 @@ function EOA:CreateUI()
     recordSpotButton:ClearAllPoints()
     recordSpotButton:SetPoint("LEFT", saveCustomButton, "RIGHT", 160, 0)
     recordSpotButton:SetSize(170, 24)
-    recordSpotButton:SetText("Record Current Spot")
+    recordSpotButton:SetText(self:T("RECORD_CURRENT_SPOT"))
     recordSpotButton:SetScript("OnClick", function()
         EOA:OpenRecordPopup()
     end)
@@ -1234,7 +1327,9 @@ function EOA:CreateUI()
         frame = frame,
         modeDropdown = modeDropdown,
         searchBox = searchBox,
-        resultsDropdown = resultsDropdown,
+        resultsScrollFrame = resultsScrollFrame,
+        resultsScrollChild = resultsScrollChild,
+        resultRows = {},
         descriptionScrollFrame = scrollFrame,
         descriptionScrollChild = scrollChild,
         descriptionText = descriptionText,
