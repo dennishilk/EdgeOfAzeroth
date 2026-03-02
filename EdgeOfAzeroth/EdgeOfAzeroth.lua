@@ -177,6 +177,18 @@ local function MergeAllEntries()
         merged[#merged + 1] = custom
     end
 
+    for _, entry in ipairs(merged) do
+        if entry.type == "FARM" then
+            if entry.category == "XP" or entry.category == "CLOTH" then
+                entry.mobLevelMin = entry.mobLevelMin or 0
+            elseif entry.category == "HERBS" or entry.category == "MINING" then
+                entry.skillRequired = entry.skillRequired or 0
+            elseif entry.category == "REPUTATION" or entry.category == "TREASURE" then
+                entry.levelRecommended = entry.levelRecommended or 0
+            end
+        end
+    end
+
     return merged
 end
 
@@ -285,30 +297,45 @@ function EOA:RefreshFilteredEntries()
         end)
     elseif self.currentMode == "FARM" then
         table.sort(self.filteredEntries, function(a, b)
-            local category = self.currentFarmCategory
+            local cat = self.currentFarmCategory
 
-            -- XP / Cloth: sort by mob level progression.
-            if category == "XP" or category == "CLOTH" then
-                if (a.mobLevelMin or 0) ~= (b.mobLevelMin or 0) then
-                    return (a.mobLevelMin or 0) < (b.mobLevelMin or 0)
+            if cat == "XP" or cat == "CLOTH" then
+                local aLevel = a.mobLevelMin or 0
+                local bLevel = b.mobLevelMin or 0
+                if aLevel ~= bLevel then
+                    return aLevel < bLevel
                 end
-
-            -- Herbs / Mining: sort by profession skill progression.
-            elseif category == "HERBS" or category == "MINING" then
-                if (a.skillRequired or 0) ~= (b.skillRequired or 0) then
-                    return (a.skillRequired or 0) < (b.skillRequired or 0)
+            elseif cat == "HERBS" or cat == "MINING" then
+                local aSkill = a.skillRequired or 0
+                local bSkill = b.skillRequired or 0
+                if aSkill ~= bSkill then
+                    return aSkill < bSkill
                 end
-
-            -- Reputation / Treasure: sort by recommended level progression.
-            elseif category == "REPUTATION" or category == "TREASURE" then
-                if (a.levelRecommended or 0) ~= (b.levelRecommended or 0) then
-                    return (a.levelRecommended or 0) < (b.levelRecommended or 0)
+            elseif cat == "REPUTATION" or cat == "TREASURE" then
+                local aRec = a.levelRecommended or 0
+                local bRec = b.levelRecommended or 0
+                if aRec ~= bRec then
+                    return aRec < bRec
                 end
-
-            -- ALL fallback: prefer recommended level, then mob level.
             else
-                local aProgression = a.levelRecommended or a.mobLevelMin or 0
-                local bProgression = b.levelRecommended or b.mobLevelMin or 0
+                local function getProgressionValue(entry)
+                    if entry.category == "HERBS" or entry.category == "MINING" then
+                        return entry.skillRequired or 0
+                    end
+
+                    if entry.mobLevelMin then
+                        return entry.mobLevelMin
+                    end
+
+                    if entry.levelRecommended then
+                        return entry.levelRecommended
+                    end
+
+                    return 0
+                end
+
+                local aProgression = getProgressionValue(a)
+                local bProgression = getProgressionValue(b)
                 if aProgression ~= bProgression then
                     return aProgression < bProgression
                 end
@@ -454,7 +481,13 @@ end
 
 local function GetEntryDisplayText(entry)
     local displayText = entry.name or "Unknown"
-    if entry.levelMin and entry.levelMax then
+    if entry.category == "HERBS" or entry.category == "MINING" then
+        displayText = displayText .. " [Skill " .. (entry.skillRequired or 0) .. "]"
+    elseif entry.category == "XP" or entry.category == "CLOTH" then
+        displayText = displayText .. " [" .. (entry.mobLevelMin or 0) .. "+]"
+    elseif entry.category == "REPUTATION" or entry.category == "TREASURE" then
+        displayText = displayText .. " [" .. (entry.levelRecommended or 0) .. "+]"
+    elseif entry.levelMin and entry.levelMax then
         displayText = displayText .. " [" .. entry.levelMin .. "–" .. entry.levelMax .. "]"
     elseif entry.levelMin then
         displayText = displayText .. " [" .. entry.levelMin .. "]"
