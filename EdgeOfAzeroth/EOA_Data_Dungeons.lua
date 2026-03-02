@@ -11,7 +11,7 @@ EOA_DATA.Dungeons = {
         levelMin = 13,
         levelMax = 18,
         recommendedPlayers = 5,
-        description = "A fiery cavern beneath Orgrimmar filled with hostile troggs and cultists."
+        description = "Hidden beneath Orgrimmar, Ragefire Chasm was once a sacred place now defiled by Searing Blade cultists and hostile troggs. The dungeon is a compact volcanic maze of lava channels, jagged stone, and cramped caverns lit by fire and shadow. Bosses like Taragaman the Hungerer and Jergosh the Invoker introduce early dungeon groups to interrupts, positioning, and dangerous caster pulls. Players run RFC for early blue upgrades, class quests, and a fast introduction to group dungeon mechanics on Horde characters."
     },
     {
         id = "dungeon_wailing_caverns",
@@ -23,7 +23,7 @@ EOA_DATA.Dungeons = {
         levelMin = 15,
         levelMax = 25,
         recommendedPlayers = 5,
-        description = "A sprawling cave network in the Barrens corrupted by the Emerald Dream."
+        description = "Wailing Caverns lies in the Barrens where Naralex's ritual to heal the land drew the corruption of the Emerald Dream. Its environment is a winding subterranean ecosystem with lush plant growth, serpents, druidic shrines, and long looping tunnels. Encounters with the Fanglords, Lord Cobrahn, and Mutanus the Devourer emphasize patrol awareness and multi-pack control in tight spaces. Adventurers come here for strong leveling loot, the famed druid and class quest chains, and completion of the Naralex storyline."
     },
     {
         id = "dungeon_deadmines",
@@ -35,7 +35,7 @@ EOA_DATA.Dungeons = {
         levelMin = 18,
         levelMax = 23,
         recommendedPlayers = 5,
-        description = "A Defias-controlled mine and shipyard hidden beneath Westfall."
+        description = "The Deadmines is the hidden industrial heart of the Defias Brotherhood rebellion in Westfall. It begins in dusty tunnels and foundries before opening into an underground shipyard that culminates aboard a pirate-style warship. Notable fights include Sneed's mechanical shredder, Mr. Smite's weapon phases, and Edwin VanCleef's iconic rooftop duel. Players visit for excellent low-level gear, long Alliance quest lines, and one of Classic's most memorable story-driven dungeon runs."
     },
     {
         id = "dungeon_shadowfang_keep",
@@ -47,7 +47,7 @@ EOA_DATA.Dungeons = {
         levelMin = 22,
         levelMax = 30,
         recommendedPlayers = 5,
-        description = "A haunted keep in Silverpine Forest ruled by undead and worgen."
+        description = "Shadowfang Keep stands in Silverpine as the cursed seat of Baron Silverlaine and the worgen tragedy tied to Arugal's madness. The instance is a gloomy gothic fortress filled with haunted halls, courtyards, laboratories, and shadowy battlements. Battles against commanders like Commander Springvale and Archmage Arugal test line-of-sight play, caster control, and careful pulls through narrow interiors. Groups run SFK for valuable mid-level blues, caster and melee upgrades, and faction quest progression linked to the Forsaken conflict."
     },
     {
         id = "dungeon_the_stockade",
@@ -59,7 +59,7 @@ EOA_DATA.Dungeons = {
         levelMin = 22,
         levelMax = 30,
         recommendedPlayers = 5,
-        description = "A prison dungeon beneath Stormwind overrun by dangerous inmates."
+        description = "The Stockade is Stormwind's prison complex, where riots and corruption turned a secure jail into a violent battleground. Its environment is straightforward and claustrophobic, with stone cells, torchlit corridors, and dense packs of humanoid enemies. Boss inmates such as Bazil Thredd and Dextren Ward force groups to manage heavy melee damage and chain pulls efficiently. Players clear it for quick experience, city-centered quest turn-ins, and a fast dungeon option for Alliance leveling routes."
     },
     {
         id = "dungeon_blackfathom_deeps",
@@ -71,7 +71,7 @@ EOA_DATA.Dungeons = {
         levelMin = 24,
         levelMax = 32,
         recommendedPlayers = 5,
-        description = "A flooded temple in Ashenvale occupied by naga and twilight forces."
+        description = "Blackfathom Deeps is an ancient temple complex in Ashenvale where twilight cultists and naga seek dark power beneath the waves. The dungeon mixes flooded ruins, moonlit caverns, and ritual chambers guarded by corrupted sea creatures and fanatics. Encounters like Gelihast, Twilight Lord Kelris, and Aku'mai include totem mechanics, adds, and threatening caster pressure for undergeared groups. Adventurers enter for strong blue items, faction quests, and story ties to the Twilight's Hammer and Old God corruption."
     },
     {
         id = "dungeon_scarlet_monastery_graveyard",
@@ -83,7 +83,7 @@ EOA_DATA.Dungeons = {
         levelMin = 26,
         levelMax = 36,
         recommendedPlayers = 5,
-        description = "The outer cemetery wing of Scarlet Monastery with undead patrols."
+        description = "The Graveyard wing marks the outer grounds of Scarlet Monastery, where the Crusade's zeal spills into crypts and ossuaries. Visually it combines overgrown cemetery paths, mausoleums, and undead-infested catacombs patrolled by fanatical Scarlet defenders. Key foes like Bloodmage Thalnos and Azshir the Sleepless highlight burst spell damage and undead control in compact pulls. Players farm this wing for quick runs, valuable cloth drops, and early access to Scarlet Monastery quest chains."
     },
     {
         id = "dungeon_gnomeregan",
@@ -95,7 +95,7 @@ EOA_DATA.Dungeons = {
         levelMin = 29,
         levelMax = 38,
         recommendedPlayers = 5,
-        description = "A mechanized gnome city overrun by troggs and radiation hazards."
+        description = "Gnomeregan tells the story of a fallen gnomish capital lost to betrayal, radiation, and invading troggs. The dungeon is a sprawling techno-complex of workshops, clean rooms, disposal pipes, and industrial machinery with multiple vertical layers. Bosses like Electrocutioner 6000, Mekgineer Thermaplugg, and event-style gauntlets require careful navigation and sustained AoE management. Players run it for class quests, engineering-flavored loot, and key storyline progress for gnome and Alliance lore."
     },
     {
         id = "dungeon_scarlet_monastery_library",
@@ -107,7 +107,7 @@ EOA_DATA.Dungeons = {
         levelMin = 29,
         levelMax = 39,
         recommendedPlayers = 5,
-        description = "The scholarly wing of Scarlet Monastery guarded by fanatical crusaders."
+        description = "The Library wing houses the Scarlet Crusade's religious archives and training halls, reinforcing the order's militant doctrine. It features candlelit stacks, cloisters, and enclosed chambers that reward disciplined line pulls and crowd control. Notable opponents such as Houndmaster Loksey and Arcanist Doan mix pet pressure, silence effects, and powerful Arcane Explosion punishments. Players favor Library for efficient experience, sought-after caster and healer drops, and progression through Scarlet quest hubs."
     },
     {
         id = "dungeon_razorfen_kraul",
@@ -119,7 +119,7 @@ EOA_DATA.Dungeons = {
         levelMin = 30,
         levelMax = 40,
         recommendedPlayers = 5,
-        description = "A thorned quilboar stronghold in the southern Barrens."
+        description = "Razorfen Kraul is a bramble-choked quilboar stronghold where tribal warfare and dark druidic influences threaten the Barrens. The environment is defined by thorn tunnels, dusty quillboar warrens, and elevated wooden structures that create awkward pull angles. Encounters with Charlga Razorflank and swarming packs reward dispels, off-target control, and disciplined target focus. Groups visit RFK for dependable leveling loot, faction quests, and access to quests that bridge into later Razorfen content."
     },
     {
         id = "dungeon_scarlet_monastery_armory",
@@ -131,7 +131,7 @@ EOA_DATA.Dungeons = {
         levelMin = 32,
         levelMax = 42,
         recommendedPlayers = 5,
-        description = "A heavily defended Scarlet armory led by elite crusade commanders."
+        description = "The Armory wing is the military core of Scarlet Monastery, where crusaders drill and stockpile weapons for their holy war. Its polished halls, weapon racks, and parade courtyards create a disciplined battlefield with dense humanoid packs. Herod is the signature boss, known for his Whirlwind phase that punishes melee positioning and healing throughput. Players run Armory for strong melee gear upgrades, fast clear speed, and high-value cloth and weapon drops during mid-level progression."
     },
     {
         id = "dungeon_scarlet_monastery_cathedral",
@@ -143,7 +143,7 @@ EOA_DATA.Dungeons = {
         levelMin = 35,
         levelMax = 45,
         recommendedPlayers = 5,
-        description = "The grand cathedral wing housing Scarlet Monastery's high command."
+        description = "Cathedral is the ideological heart of the Scarlet Crusade, culminating in the confrontation with High Inquisitor Whitemane and Scarlet Commander Mograine. The wing presents grand chapels, stained-glass halls, and ceremonial chambers that contrast beauty with fanatic brutality. Its famous resurrection sequence and heavy elite pulls demand coordinated interrupts, threat control, and recovery planning. Parties come for some of the best pre-40 loot in Classic, capstone Scarlet quests, and one of the most iconic midgame encounters."
     },
     {
         id = "dungeon_razorfen_downs",
@@ -155,7 +155,7 @@ EOA_DATA.Dungeons = {
         levelMin = 40,
         levelMax = 50,
         recommendedPlayers = 5,
-        description = "A haunted quilboar necropolis with undead and shadow magic."
+        description = "Razorfen Downs reflects the further decay of quilboar lands, where death magic and Scourge influence seep into once-tribal territory. The atmosphere is a haunted necropolis of bone-lined passages, burial mounds, and shadowy ritual spaces. Bosses like Amnennar the Coldbringer and Mordresh Fire Eye combine fear, frost, and undead swarms that test healer mana and group control. Players venture here for level-appropriate blues, key class and dungeon quests, and efficient runs before the high-40s dungeon bracket."
     },
     {
         id = "dungeon_uldaman",
@@ -167,7 +167,7 @@ EOA_DATA.Dungeons = {
         levelMin = 42,
         levelMax = 52,
         recommendedPlayers = 5,
-        description = "An ancient titan vault in the Badlands full of constructs and relics."
+        description = "Uldaman is a titan research vault in the Badlands that reveals major lore about the Earthen and Azeroth's ancient keepers. Its environment transitions from excavated dig sites to monumental stone halls, vaults, and construct-guarded sanctums. Encounters with Ironaya, Galgann Firehammer, and Archaedas emphasize patrol control, scripted awakenings, and burst damage windows. Players run Uldaman for relic-themed loot, important quest chains including The Discs of Norgannon, and deep worldbuilding payoff."
     },
     {
         id = "dungeon_zulfarrak",
@@ -179,7 +179,7 @@ EOA_DATA.Dungeons = {
         levelMin = 44,
         levelMax = 54,
         recommendedPlayers = 5,
-        description = "A troll city in Tanaris known for brutal sandfury rituals."
+        description = "Zul'Farrak is the desert capital of the Sandfury trolls, where blood rites and territorial warfare dominate Tanaris. The setting is an open-air sandstone city with stepped pyramids, execution grounds, and sprawling troll camps under harsh sun. Famous moments include the staircase rescue event, Chief Ukorz Sandscalp, and Witch Doctor Zum'rah's add-heavy pressure. Players repeatedly farm ZF for highly efficient experience, desirable weapon and armor drops, and pivotal quests like the Divino-matic and troll chains."
     },
     {
         id = "dungeon_maraudon",
@@ -191,7 +191,7 @@ EOA_DATA.Dungeons = {
         levelMin = 46,
         levelMax = 55,
         recommendedPlayers = 5,
-        description = "A vast desolace cavern split into corrupted and pristine elemental wings."
+        description = "Maraudon is the sacred but corrupted domain of the centaur and earth spirits tied to Zaetar and Theradras in Desolace. It spans crystalline caverns, poisonous groves, and vivid elemental chambers that feel markedly different across its wings. Bosses such as Celebras the Cursed and Princess Theradras add escort elements, knockbacks, and heavy nature damage concerns. Adventurers come for high-value loot like Blackstone Ring, nature-resist pieces, and long quest lines that reward trinkets and dungeon access progression."
     },
     {
         id = "dungeon_sunken_temple",
@@ -203,7 +203,7 @@ EOA_DATA.Dungeons = {
         levelMin = 50,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "A submerged troll temple in the Swamp of Sorrows devoted to Hakkar."
+        description = "The Temple of Atal'Hakkar is a sunken Gurubashi ruin where the Atal'ai sought to summon Hakkar before the ritual was shattered by dragons. Its circular architecture, submerged halls, and upper sanctum create a distinctive multi-level layout with dragonkin and troll cultists. Encounters with Jammal'an and Shade of Eranikus reward coordinated dispels, add control, and attention to class quest objectives. Players run ST for major class quest rewards, pre-raid gearing, and lore bridges leading toward Zul'Gurub and endgame troll content."
     },
     {
         id = "dungeon_blackrock_depths",
@@ -215,7 +215,7 @@ EOA_DATA.Dungeons = {
         levelMin = 52,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "A massive Dark Iron city-dungeon deep within Blackrock Mountain."
+        description = "Blackrock Depths is the colossal Dark Iron capital beneath Blackrock Mountain, central to Moira's court and Ragnaros's influence. The dungeon is an immense city-instance of prisons, taverns, foundries, and imperial halls with countless optional routes and events. Signature fights include the Ring of Law, Emperor Dagran Thaurissan, and numerous boss clusters that demand planning and route knowledge. Players grind BRD for attunement to Molten Core, key quests, endgame crafting recipes, and a huge variety of pre-raid best-in-slot items."
     },
     {
         id = "dungeon_lower_blackrock_spire",
@@ -227,7 +227,7 @@ EOA_DATA.Dungeons = {
         levelMin = 55,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "The lower halls of Blackrock Spire occupied by orcs and war beasts."
+        description = "Lower Blackrock Spire is the lower fortress of the Blackrock orcs, where Rend's forces and beasts prepare for war. The environment is a dark military citadel of barracks, kennels, and ritual chambers connected by long, dangerous hallways. Bosses like Highlord Omokk, War Master Voone, and Overlord Wyrmthalak pressure tanks with stuns, cleaves, and heavy add pulls. Players farm LBRS for dungeon set pieces, key quests including Onyxia and Blackhand chains, and materials needed for high-level progression."
     },
     {
         id = "dungeon_upper_blackrock_spire",
@@ -238,8 +238,8 @@ EOA_DATA.Dungeons = {
         type = "DUNGEON",
         levelMin = 55,
         levelMax = 60,
-        recommendedPlayers = 5,
-        description = "The upper fortress of Blackrock Spire leading to General Drakkisath."
+        recommendedPlayers = 10,
+        description = "Upper Blackrock Spire crowns the mountain stronghold, serving as Nefarian's staging ground under General Drakkisath. Its style is an elite fortress with dragonkin patrols, trap-laden rooms, and gauntlet-like progression that punishes sloppy pulls. The Beast, Jed Runewatcher, and Drakkisath himself are notable for fear effects, heavy burst, and strict crowd-control demands in Classic comps. Groups run UBRS for attunement quests to Blackwing Lair, high-end pre-raid loot, and progression toward late-phase raid readiness."
     },
     {
         id = "dungeon_dire_maul_east",
@@ -251,7 +251,7 @@ EOA_DATA.Dungeons = {
         levelMin = 55,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "The warped eastern wing of Dire Maul filled with satyrs and elementals."
+        description = "Dire Maul East explores warped Eldre'Thalas gardens where satyrs and corrupted elementals overran ancient highborne grounds. The wing is lush yet dangerous, with overgrown walkways, crystalline growths, and winding courtyards full of caster-heavy packs. Encounters with Hydrospawn, Zevrim Thornhoof, and Alzzin the Wildshaper emphasize dispels, positioning, and selective pull routing. Players clear DM East for lucrative herb and lashers farms, class quests, and pre-raid items with strong caster and utility value."
     },
     {
         id = "dungeon_dire_maul_west",
@@ -263,7 +263,7 @@ EOA_DATA.Dungeons = {
         levelMin = 55,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "The haunted western halls of Dire Maul with arcane and spectral foes."
+        description = "Dire Maul West delves into haunted highborne halls where arcane experiments and ghostly nobles linger in ruin. Its environment features grand libraries, banquet chambers, and spectral corridors that demand tight caster interrupts and curse management. Bosses such as Tendris Warpwood, Magister Kalendris, and Prince Tortheldrin blend charm effects, spell pressure, and elite guard packs. Players run DM West for class-specific quests, key pre-raid drops, and progression tied to the broader Shen'dralar storyline."
     },
     {
         id = "dungeon_dire_maul_north",
@@ -275,7 +275,7 @@ EOA_DATA.Dungeons = {
         levelMin = 55,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "The ogre-held northern district of Dire Maul known as Gordok Commons."
+        description = "Dire Maul North, also known as Gordok Commons, is controlled by ogre clans ruling from the remains of Eldre'Thalas. The wing is a broad fortress zone with patrol-heavy halls, guard posts, and open courtyards suited to strategic skips and pull planning. Captain Kromcrush and King Gordok define the run, while tribute mechanics reward groups that preserve key bosses for bonus loot. Players farm DM North for the Tribute chest, excellent pre-raid gear, and consumable-related items prized in raid preparation."
     },
     {
         id = "dungeon_scholomance",
@@ -287,7 +287,7 @@ EOA_DATA.Dungeons = {
         levelMin = 58,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "A necromantic academy in Western Plaguelands teeming with undead."
+        description = "Scholomance is Kel'Thuzad's necromantic academy at Caer Darrow, where dark alchemy and Scourge indoctrination are taught. The dungeon is a grim school of classrooms, summoning labs, and cryptlike lecture halls packed with undead casters. Fights against instructors, Jandice Barov's illusions, and Darkmaster Gandling require interrupts, curse control, and fast target swaps. Players run Scholo for tier 0 set pieces, alchemy and enchanting recipes, key quests, and reputation-linked endgame progression."
     },
     {
         id = "dungeon_stratholme_live",
@@ -299,7 +299,7 @@ EOA_DATA.Dungeons = {
         levelMin = 58,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "The Scarlet side of Stratholme with crusaders and living defenders."
+        description = "The Live side of Stratholme represents the Scarlet Crusade's entrenched district amid the ruined city Arthas once purged. Its burning streets, chapels, and barricaded avenues create a fast-paced urban battlefield with dense humanoid packs. Bosses like Cannon Master Willey and Balnazzar challenge groups with ranged pressure, fears, and punishing patrol timing. Players clear Live for pre-raid upgrades, Scarlet-focused quests, and access to key city objectives tied to late-game dungeon progression."
     },
     {
         id = "dungeon_stratholme_undead",
@@ -311,6 +311,6 @@ EOA_DATA.Dungeons = {
         levelMin = 58,
         levelMax = 60,
         recommendedPlayers = 5,
-        description = "The undead quarter of Stratholme ruled by abominations and banshees."
+        description = "The Undead side of Stratholme is the Scourge-dominated quarter where abominations, banshees, and necromancers roam plague-ridden streets. This wing is darker and more oppressive, with slaughterhouses, ziggurat objectives, and gauntlet pacing around high-threat elite packs. Baron Rivendare anchors the route, and timed mechanics for the Baron run add urgency for coordinated, efficient clears. Players farm this side for endgame blues, tier 0 pieces, Deathcharger's Reins attempts, and important quests leading into raid preparation."
     },
 }
