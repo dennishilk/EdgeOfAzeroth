@@ -298,11 +298,13 @@ function EOA:RefreshFilteredEntries()
             local cat = self.currentFarmCategory
 
             if cat == "XP" or cat == "CLOTH" then
-                local aLevel = a.levelRecommended or 0
-                local bLevel = b.levelRecommended or 0
-                if aLevel ~= bLevel then
-                    return aLevel < bLevel
+                local function getLevel(entry)
+                    return entry.levelRecommended
+                        or entry.mobLevelMin
+                        or 0
                 end
+
+                return getLevel(a) < getLevel(b)
             elseif cat == "HERBS" or cat == "MINING" then
                 local aSkill = a.skillRequired or 0
                 local bSkill = b.skillRequired or 0
@@ -474,7 +476,11 @@ local function GetEntryDisplayText(entry)
     if entry.category == "HERBS" or entry.category == "MINING" then
         displayText = displayText .. " [Skill " .. (entry.skillRequired or 0) .. "]"
     elseif entry.category == "XP" or entry.category == "CLOTH" then
-        displayText = displayText .. " [" .. (entry.levelRecommended or 0) .. "+]"
+        local level = entry.levelRecommended
+            or entry.mobLevelMin
+            or 0
+
+        displayText = displayText .. " [" .. level .. "+]"
     elseif entry.category == "REPUTATION" or entry.category == "TREASURE" then
         displayText = displayText .. " [" .. (entry.levelRecommended or 0) .. "+]"
     elseif entry.levelMin and entry.levelMax then
