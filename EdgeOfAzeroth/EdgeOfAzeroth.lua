@@ -7,7 +7,6 @@ EOA.activeEntry = nil
 EOA.filteredEntries = {}
 EOA.selectedEntryID = nil
 EOA.currentMode = "ALL"
-EOA.currentZone = "ALL"
 EOA.smoothDistance = nil
 EOA.updateAccumulator = 0
 EOA.updateRate = 0.10
@@ -118,8 +117,6 @@ EOA.AtlasData = {
     { id = "farm_silithus_twilight", name = "Twilight Base Camp", mapID = 1451, x = 0.483, y = 0.371, type = "FARM", zoneGroup = "Kalimdor", tags = { "twilight", "texts", "silithus" }, description = "Twilight camps in Silithus are favored for repeatable kill loops and faction-related materials. The camp layout supports route planning with clear tent clusters and short transitions. Enemy density is high enough to keep combat continuous during active periods. Sandstorm ambience and cult encampments create a harsh but focused farming environment." },
 }
 
-EOA.ZoneFilterOptions = {}
-
 local function EnsureDB()
     EdgeOfAzerothDB = EdgeOfAzerothDB or {}
     EdgeOfAzerothDB.customSpots = EdgeOfAzerothDB.customSpots or {}
@@ -179,27 +176,6 @@ local function MergeAllEntries()
     return merged
 end
 
-function EOA:RebuildZoneFilterOptions()
-    local seen = {}
-    local zones = {}
-
-    for _, entry in ipairs(MergeAllEntries()) do
-        if entry.mapID and not seen[entry.mapID] then
-            seen[entry.mapID] = true
-            zones[#zones + 1] = {
-                mapID = entry.mapID,
-                name = GetMapName(entry.mapID),
-            }
-        end
-    end
-
-    table.sort(zones, function(a, b)
-        return (a.name or "") < (b.name or "")
-    end)
-
-    self.ZoneFilterOptions = zones
-end
-
 function EOA:GetEntryByID(id)
     if not id then
         return nil
@@ -237,7 +213,7 @@ local function EntryMatchesSearch(entry, search)
     return false
 end
 
-local function EntryMatchesFilters(entry, mode, zoneMapID, search)
+local function EntryMatchesFilters(entry, mode, search)
     if mode == "SCENIC" and entry.type ~= "SCENIC" then
         return false
     elseif mode == "DUNGEON" and entry.type ~= "DUNGEON" then
@@ -247,10 +223,6 @@ local function EntryMatchesFilters(entry, mode, zoneMapID, search)
     elseif mode == "FARM" and entry.type ~= "FARM" then
         return false
     elseif mode == "FAVORITES" and not EdgeOfAzerothDB.favorites[entry.id] then
-        return false
-    end
-
-    if zoneMapID ~= "ALL" and entry.mapID ~= zoneMapID then
         return false
     end
 
@@ -280,7 +252,7 @@ function EOA:RefreshFilteredEntries()
     self.filteredEntries = {}
 
     for _, entry in ipairs(MergeAllEntries()) do
-        if EntryMatchesFilters(entry, self.currentMode, self.currentZone, search) then
+        if EntryMatchesFilters(entry, self.currentMode, search) then
             self.filteredEntries[#self.filteredEntries + 1] = entry
         end
     end
@@ -390,44 +362,6 @@ function EOA:RefreshModeDropdown()
         end
     end
     UIDropDownMenu_SetText(self.ui.modeDropdown, currentText)
-end
-
-function EOA:RefreshZoneDropdown()
-    self:RebuildZoneFilterOptions()
-
-    UIDropDownMenu_Initialize(self.ui.zoneDropdown, function(_, level)
-        if level ~= 1 then
-            return
-        end
-
-        local allInfo = UIDropDownMenu_CreateInfo()
-        allInfo.text = "All Zones"
-        allInfo.checked = (self.currentZone == "ALL")
-        allInfo.func = function()
-            self.currentZone = "ALL"
-            UIDropDownMenu_SetText(self.ui.zoneDropdown, "All Zones")
-            self:RefreshFilteredEntries()
-        end
-        UIDropDownMenu_AddButton(allInfo, level)
-
-        for _, zone in ipairs(self.ZoneFilterOptions) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = zone.name
-            info.checked = (self.currentZone == zone.mapID)
-            info.func = function()
-                self.currentZone = zone.mapID
-                UIDropDownMenu_SetText(self.ui.zoneDropdown, zone.name)
-                self:RefreshFilteredEntries()
-            end
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end)
-
-    if self.currentZone == "ALL" then
-        UIDropDownMenu_SetText(self.ui.zoneDropdown, "All Zones")
-    else
-        UIDropDownMenu_SetText(self.ui.zoneDropdown, GetMapName(self.currentZone))
-    end
 end
 
 function EOA:RefreshResultsDropdown()
@@ -696,7 +630,6 @@ function EOA:SaveCustomSpotFromPlayerPosition()
     }
 
     table.insert(EdgeOfAzerothDB.customSpots, customEntry)
-    self:RefreshZoneDropdown()
     self:RefreshFilteredEntries()
 
     self.selectedEntryID = id
@@ -1094,8 +1027,6 @@ function EOA:SaveRecordPopupEntry()
     }
 
     table.insert(EdgeOfAzerothDB.customSpots, customEntry)
-
-    self:RefreshZoneDropdown()
     self:RefreshFilteredEntries()
 
     self.selectedEntryID = id
@@ -1135,7 +1066,6 @@ function EOA:QuickRecordSpot(entryType)
     }
 
     table.insert(EdgeOfAzerothDB.customSpots, customEntry)
-    self:RefreshZoneDropdown()
     self:RefreshFilteredEntries()
 
     DEFAULT_CHAT_FRAME:AddMessage("|cffFFD54F[Edge Of Azeroth]|r Quick record saved: " .. name .. " [" .. entryType .. "]")
@@ -1187,16 +1117,8 @@ function EOA:CreateUI()
     modeDropdown:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", -16, -2)
     UIDropDownMenu_SetWidth(modeDropdown, 150)
 
-    local zoneLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    zoneLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 196, -36)
-    zoneLabel:SetText("Zone")
-
-    local zoneDropdown = CreateFrame("Frame", "EdgeOfAzerothZoneDropdown", frame, "UIDropDownMenuTemplate")
-    zoneDropdown:SetPoint("TOPLEFT", zoneLabel, "BOTTOMLEFT", -16, -2)
-    UIDropDownMenu_SetWidth(zoneDropdown, 150)
-
     local searchLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    searchLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 376, -36)
+    searchLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 196, -36)
     searchLabel:SetText("Search")
 
     local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
@@ -1347,7 +1269,6 @@ function EOA:CreateUI()
     self.ui = {
         frame = frame,
         modeDropdown = modeDropdown,
-        zoneDropdown = zoneDropdown,
         searchBox = searchBox,
         resultsDropdown = resultsDropdown,
         descriptionScrollFrame = scrollFrame,
@@ -1394,7 +1315,6 @@ function EOA:Initialize()
     end
 
     self:RefreshModeDropdown()
-    self:RefreshZoneDropdown()
     self:RefreshFilteredEntries()
 
     local ticker = CreateFrame("Frame")
