@@ -772,7 +772,7 @@ function EOA:OnUpdate(elapsed)
     end
 
     local facing = GetPlayerFacing() or 0
-    local targetBearing = math.atan2(dx, -dy)
+    local targetBearing = math.atan2(dx, dy)
     local relativeRotation = targetBearing - facing
     self.ui.arrowTexture:SetRotation(relativeRotation)
 
@@ -1333,7 +1333,7 @@ function EOA:CreateUI()
     searchLabel:SetText(self:T("SEARCH"))
 
     local searchBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-    searchBox:SetSize(135, 24)
+    searchBox:SetSize(220, 24)
     searchBox:ClearAllPoints()
     searchBox:SetPoint("TOPLEFT", searchLabel, "BOTTOMLEFT", 0, -4)
     searchBox:SetAutoFocus(false)
@@ -1342,7 +1342,7 @@ function EOA:CreateUI()
 
     local placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     placeholder:SetPoint("LEFT", searchBox, "LEFT", 6, 0)
-    placeholder:SetWidth(120)
+    placeholder:SetWidth(200)
     placeholder:SetWordWrap(false)
     placeholder:SetText("Search (e.g. runecloth, BRD, Desolace)")
 
@@ -1415,14 +1415,6 @@ function EOA:CreateUI()
     stopButton:SetText(self:T("STOP_NAV"))
     stopButton:SetScript("OnClick", function()
         EOA:StopNavigation(false)
-    end)
-
-    local calibrateButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    calibrateButton:SetSize(buttonWidth, buttonHeight)
-    calibrateButton:SetPoint("LEFT", stopButton, "RIGHT", spacing, 0)
-    calibrateButton:SetText(self:T("SET_TARGET_TO_MY_POSITION"))
-    calibrateButton:SetScript("OnClick", function()
-        EOA:CalibrateSelectedToPlayerPosition()
     end)
 
     local saveCustomButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
@@ -1559,6 +1551,9 @@ SlashCmdList["EDGEOFAZEROTH"] = function(msg)
 
     if command == "admin" then
         EdgeOfAzeroth:OpenAdminTools()
+        return
+    elseif command == "set" then
+        EdgeOfAzeroth:CalibrateSelectedToPlayerPosition()
         return
     end
 
