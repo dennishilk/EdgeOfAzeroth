@@ -7,4 +7,14 @@
 
 EdgeOfAzeroth.lua
 
-EOA_Data_DungeonsAndRaids.lua
+EOA_Data_Dungeons.lua
+EOA_Data_Raids.lua
+EOA_Data_Screenshots.lua
+EOA_Data_Mining.lua
+EOA_Data_Herbs.lua
+EOA_Data_Cloth.lua
+EOA_Data_Grind.lua
+EOA_Data_PvP.lua
+EOA_Data_Utility.lua
+EOA_Data_Treasure.lua
+EOA_Data_Reputation.lua
