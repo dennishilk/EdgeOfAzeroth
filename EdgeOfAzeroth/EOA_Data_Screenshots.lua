@@ -1,7 +1,7 @@
 -- EOA_Data_Screenshots.lua
 EOA_DATA = EOA_DATA or {}
 
-EOA_DATA.Screenshots = {
+EOA_DATA.Scenic = {
     {
         id = "screenshot_stonetalon_sunrock",
         name = "Sun Rock Retreat Overlook",
@@ -101,3 +101,5 @@ EOA_DATA.Screenshots = {
         description = "Jungle canopy overlook with long sight lines across northern Stranglethorn."
     },
 }
+
+EOA_DATA.Screenshots = EOA_DATA.Scenic

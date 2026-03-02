@@ -33,15 +33,17 @@ local DENSITY_OPTIONS = {
 
 local MODE_OPTIONS = {
     { value = "ALL", text = "All" },
-    { value = "SCENIC", text = "Scenic" },
+    { value = "SCENIC", text = "Screenshots" },
     { value = "DUNGEON", text = "Dungeons" },
+    { value = "RAID", text = "Raids" },
     { value = "FARM", text = "Farming" },
     { value = "FAVORITES", text = "Favorites" },
 }
 
 local TYPE_LABELS = {
-    SCENIC = "Scenic",
+    SCENIC = "Screenshots",
     DUNGEON = "Dungeon",
+    RAID = "Raid",
     FARM = "Farm",
 }
 
@@ -138,11 +140,37 @@ local function GetEntryCoords(entry)
     return entry.mapID, entry.x, entry.y
 end
 
-local function MergeAllEntries()
+local function MergeStaticDataEntries()
     local merged = {}
-    for _, entry in ipairs(EOA.AtlasData) do
-        merged[#merged + 1] = entry
+    local data = rawget(_G, "EOA_DATA")
+    local staticTables = {
+        data and data.Dungeons,
+        data and data.Raids,
+        data and data.Scenic,
+        data and data.Screenshots,
+        data and data.Mining,
+        data and data.Herbs,
+        data and data.Cloth,
+        data and data.Grind,
+        data and data.PvP,
+        data and data.Utility,
+        data and data.Treasure,
+        data and data.Reputation,
+    }
+
+    for _, source in ipairs(staticTables) do
+        if type(source) == "table" then
+            for _, entry in ipairs(source) do
+                merged[#merged + 1] = entry
+            end
+        end
     end
+
+    return merged
+end
+
+local function MergeAllEntries()
+    local merged = MergeStaticDataEntries()
 
     for _, custom in ipairs(EdgeOfAzerothDB.customSpots) do
         merged[#merged + 1] = custom
@@ -213,6 +241,8 @@ local function EntryMatchesFilters(entry, mode, zoneMapID, search)
     if mode == "SCENIC" and entry.type ~= "SCENIC" then
         return false
     elseif mode == "DUNGEON" and entry.type ~= "DUNGEON" then
+        return false
+    elseif mode == "RAID" and entry.type ~= "RAID" then
         return false
     elseif mode == "FARM" and entry.type ~= "FARM" then
         return false
