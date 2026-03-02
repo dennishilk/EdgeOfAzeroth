@@ -284,15 +284,33 @@ function EOA:RefreshFilteredEntries()
             return (a.levelMin or 0) < (b.levelMin or 0)
         end)
     elseif self.currentMode == "FARM" then
-        local category = self.currentFarmCategory
         table.sort(self.filteredEntries, function(a, b)
-            if category == "XP" then
+            local category = self.currentFarmCategory
+
+            -- XP / Cloth: sort by mob level progression.
+            if category == "XP" or category == "CLOTH" then
                 if (a.mobLevelMin or 0) ~= (b.mobLevelMin or 0) then
                     return (a.mobLevelMin or 0) < (b.mobLevelMin or 0)
                 end
+
+            -- Herbs / Mining: sort by profession skill progression.
             elseif category == "HERBS" or category == "MINING" then
                 if (a.skillRequired or 0) ~= (b.skillRequired or 0) then
                     return (a.skillRequired or 0) < (b.skillRequired or 0)
+                end
+
+            -- Reputation / Treasure: sort by recommended level progression.
+            elseif category == "REPUTATION" or category == "TREASURE" then
+                if (a.levelRecommended or 0) ~= (b.levelRecommended or 0) then
+                    return (a.levelRecommended or 0) < (b.levelRecommended or 0)
+                end
+
+            -- ALL fallback: prefer recommended level, then mob level.
+            else
+                local aProgression = a.levelRecommended or a.mobLevelMin or 0
+                local bProgression = b.levelRecommended or b.mobLevelMin or 0
+                if aProgression ~= bProgression then
+                    return aProgression < bProgression
                 end
             end
 
