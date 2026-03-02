@@ -38,6 +38,7 @@ EOA.activeEntry = nil
 EOA.filteredEntries = {}
 EOA.selectedEntryID = nil
 EOA.currentMode = "ALL"
+EOA.currentFarmCategory = "ALL"
 EOA.smoothDistance = nil
 EOA.updateAccumulator = 0
 EOA.updateRate = 0.10
@@ -68,6 +69,16 @@ local MODE_OPTIONS = {
     { value = "RAID", text = "Raids" },
     { value = "FARM", text = "Farming" },
     { value = "FAVORITES", text = "Favorites" },
+}
+
+local FARM_CATEGORY_OPTIONS = {
+    { value = "ALL", text = "ALL" },
+    { value = "XP", text = "XP" },
+    { value = "CLOTH", text = "CLOTH" },
+    { value = "HERBS", text = "HERBS" },
+    { value = "MINING", text = "MINING" },
+    { value = "REPUTATION", text = "REPUTATION" },
+    { value = "TREASURE", text = "TREASURE" },
 }
 
 local TYPE_LABELS = {
@@ -213,8 +224,14 @@ local function EntryMatchesFilters(entry, mode, search)
         return false
     elseif mode == "RAID" and entry.type ~= "RAID" then
         return false
-    elseif mode == "FARM" and entry.type ~= "FARM" then
-        return false
+    elseif mode == "FARM" then
+        if entry.type ~= "FARM" then
+            return false
+        end
+
+        if EOA.currentFarmCategory ~= "ALL" and entry.category ~= EOA.currentFarmCategory then
+            return false
+        end
     elseif mode == "FAVORITES" and not EdgeOfAzerothDB.favorites[entry.id] then
         return false
     end
@@ -265,6 +282,21 @@ function EOA:RefreshFilteredEntries()
     elseif self.currentMode == "RAID" then
         table.sort(self.filteredEntries, function(a, b)
             return (a.levelMin or 0) < (b.levelMin or 0)
+        end)
+    elseif self.currentMode == "FARM" then
+        local category = self.currentFarmCategory
+        table.sort(self.filteredEntries, function(a, b)
+            if category == "XP" then
+                if (a.mobLevelMin or 0) ~= (b.mobLevelMin or 0) then
+                    return (a.mobLevelMin or 0) < (b.mobLevelMin or 0)
+                end
+            elseif category == "HERBS" or category == "MINING" then
+                if (a.skillRequired or 0) ~= (b.skillRequired or 0) then
+                    return (a.skillRequired or 0) < (b.skillRequired or 0)
+                end
+            end
+
+            return (a.name or "") < (b.name or "")
         end)
     end
 
@@ -344,6 +376,7 @@ function EOA:RefreshModeDropdown()
             info.func = function()
                 self.currentMode = mode.value
                 UIDropDownMenu_SetText(self.ui.modeDropdown, mode.text)
+                self:UpdateFarmCategoryVisibility()
                 self:RefreshFilteredEntries()
             end
             UIDropDownMenu_AddButton(info, level)
@@ -358,6 +391,47 @@ function EOA:RefreshModeDropdown()
         end
     end
     UIDropDownMenu_SetText(self.ui.modeDropdown, currentText)
+end
+
+function EOA:RefreshFarmCategoryDropdown()
+    UIDropDownMenu_Initialize(self.ui.farmCategoryDropdown, function(_, level)
+        if level ~= 1 then
+            return
+        end
+
+        for _, category in ipairs(FARM_CATEGORY_OPTIONS) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = category.text
+            info.checked = (self.currentFarmCategory == category.value)
+            info.func = function()
+                self.currentFarmCategory = category.value
+                UIDropDownMenu_SetText(self.ui.farmCategoryDropdown, category.text)
+                self:RefreshFilteredEntries()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    UIDropDownMenu_SetText(self.ui.farmCategoryDropdown, self.currentFarmCategory)
+end
+
+function EOA:UpdateFarmCategoryVisibility()
+    if not self.ui or not self.ui.farmCategoryDropdown then
+        return
+    end
+
+    local show = (self.currentMode == "FARM")
+    if show then
+        self.ui.farmCategoryLabel:Show()
+        self.ui.farmCategoryDropdown:Show()
+        self.ui.resultsLabel:ClearAllPoints()
+        self.ui.resultsLabel:SetPoint("TOPLEFT", self.ui.farmCategoryDropdown, "BOTTOMLEFT", 16, -8)
+    else
+        self.ui.farmCategoryLabel:Hide()
+        self.ui.farmCategoryDropdown:Hide()
+        self.ui.resultsLabel:ClearAllPoints()
+        self.ui.resultsLabel:SetPoint("TOPLEFT", self.ui.frame, "TOPLEFT", 16, -96)
+    end
 end
 
 local function GetEntryDisplayText(entry)
@@ -1176,6 +1250,14 @@ function EOA:CreateUI()
     modeDropdown:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", -16, -2)
     UIDropDownMenu_SetWidth(modeDropdown, 150)
 
+    local farmCategoryLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    farmCategoryLabel:SetPoint("TOPLEFT", modeDropdown, "BOTTOMLEFT", 16, -8)
+    farmCategoryLabel:SetText("Farming Type")
+
+    local farmCategoryDropdown = CreateFrame("Frame", "EdgeOfAzerothFarmCategoryDropdown", frame, "UIDropDownMenuTemplate")
+    farmCategoryDropdown:SetPoint("TOPLEFT", farmCategoryLabel, "BOTTOMLEFT", -16, -2)
+    UIDropDownMenu_SetWidth(farmCategoryDropdown, 150)
+
     local searchLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     searchLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 196, -36)
     searchLabel:SetText(self:T("SEARCH"))
@@ -1341,6 +1423,9 @@ function EOA:CreateUI()
     self.ui = {
         frame = frame,
         modeDropdown = modeDropdown,
+        farmCategoryLabel = farmCategoryLabel,
+        farmCategoryDropdown = farmCategoryDropdown,
+        resultsLabel = resultsLabel,
         searchBox = searchBox,
         resultsScrollFrame = resultsScrollFrame,
         resultsScrollChild = resultsScrollChild,
@@ -1389,6 +1474,8 @@ function EOA:Initialize()
     end
 
     self:RefreshModeDropdown()
+    self:RefreshFarmCategoryDropdown()
+    self:UpdateFarmCategoryVisibility()
     self:RefreshFilteredEntries()
 
     local ticker = CreateFrame("Frame")
