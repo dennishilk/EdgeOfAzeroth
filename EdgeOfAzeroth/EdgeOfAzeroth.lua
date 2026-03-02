@@ -180,7 +180,7 @@ local function MergeAllEntries()
     for _, entry in ipairs(merged) do
         if entry.type == "FARM" then
             if entry.category == "XP" or entry.category == "CLOTH" or entry.category == "REPUTATION" or entry.category == "TREASURE" then
-                entry.levelRecommended = entry.levelRecommended or entry.levelMin or entry.mobLevelMin or 0
+                entry.levelRecommended = entry.levelRecommended or entry.levelMin or 0
             elseif entry.category == "HERBS" or entry.category == "MINING" then
                 entry.skillRequired = entry.skillRequired or 0
             end
@@ -300,7 +300,6 @@ function EOA:RefreshFilteredEntries()
             if cat == "XP" or cat == "CLOTH" then
                 local function getLevel(entry)
                     return entry.levelRecommended
-                        or entry.mobLevelMin
                         or 0
                 end
 
@@ -477,7 +476,6 @@ local function GetEntryDisplayText(entry)
         displayText = displayText .. " [Skill " .. (entry.skillRequired or 0) .. "]"
     elseif entry.category == "XP" or entry.category == "CLOTH" then
         local level = entry.levelRecommended
-            or entry.mobLevelMin
             or 0
 
         displayText = displayText .. " [" .. level .. "+]"
@@ -1446,24 +1444,6 @@ function EOA:CreateUI()
         EOA:ToggleFavoriteForSelected()
     end)
 
-    local explorerToggleButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    explorerToggleButton:ClearAllPoints()
-    explorerToggleButton:SetPoint("LEFT", favoriteButton, "RIGHT", 10, 0)
-    explorerToggleButton:SetSize(150, 24)
-    explorerToggleButton:SetText(self:T("EXPLORER_MODE") .. ": " .. self:T("OFF"))
-    explorerToggleButton:SetScript("OnClick", function()
-        EOA:ToggleExplorerMode()
-    end)
-
-    local recordSpotButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    recordSpotButton:ClearAllPoints()
-    recordSpotButton:SetPoint("LEFT", saveCustomButton, "RIGHT", 160, 0)
-    recordSpotButton:SetSize(170, 24)
-    recordSpotButton:SetText(self:T("RECORD_CURRENT_SPOT"))
-    recordSpotButton:SetScript("OnClick", function()
-        EOA:OpenRecordPopup()
-    end)
-
     local arrowFrame = CreateFrame("Frame", "EdgeOfAzerothArrowFrame", UIParent)
     arrowFrame:SetSize(120, 120)
     arrowFrame:SetPoint("TOP", UIParent, "TOP", 0, -40)
@@ -1506,8 +1486,6 @@ function EOA:CreateUI()
         descriptionScrollChild = scrollChild,
         descriptionText = descriptionText,
         favoriteButton = favoriteButton,
-        explorerToggleButton = explorerToggleButton,
-        recordSpotButton = recordSpotButton,
         arrowFrame = arrowFrame,
         arrowTexture = arrowTexture,
         distanceText = distanceText,
@@ -1528,6 +1506,15 @@ function EOA:ToggleMainFrame()
         self.ui.frame:Hide()
     else
         self.ui.frame:Show()
+    end
+end
+
+function EOA:OpenAdminTools()
+    self:CreateExplorerOverlay()
+    self:SetExplorerMode(true)
+
+    if self.ui and self.ui.recordPopup then
+        self:OpenRecordPopup()
     end
 end
 
@@ -1570,20 +1557,12 @@ SlashCmdList["EDGEOFAZEROTH"] = function(msg)
 
     local command = msg and string.lower((msg:gsub("^%s+", ""):gsub("%s+$", ""))) or ""
 
-    if command == "record" then
-        EdgeOfAzeroth:OpenRecordPopup()
-        return
-    elseif command == "dungeon" then
-        EdgeOfAzeroth:QuickRecordSpot("DUNGEON")
-        return
-    elseif command == "farm" then
-        EdgeOfAzeroth:QuickRecordSpot("FARM")
+    if command == "admin" then
+        EdgeOfAzeroth:OpenAdminTools()
         return
     end
 
-    if EdgeOfAzeroth.ToggleMainFrame then
-        EdgeOfAzeroth:ToggleMainFrame()
-    end
+    EdgeOfAzeroth:ToggleMainFrame()
 end
 
 if EdgeOfAzeroth and EdgeOfAzeroth.Initialize then
