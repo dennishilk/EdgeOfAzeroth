@@ -437,9 +437,14 @@ function EOA:RefreshResultsDropdown()
         end
 
         for _, entry in ipairs(self.filteredEntries) do
-            local suffix = TYPE_LABELS[entry.type] or entry.type or "Spot"
+            local displayText = entry.name or "Unknown"
+            if entry.levelMin and entry.levelMax then
+                displayText = displayText .. " [" .. entry.levelMin .. "–" .. entry.levelMax .. "]"
+            elseif entry.levelMin then
+                displayText = displayText .. " [" .. entry.levelMin .. "]"
+            end
             local info = UIDropDownMenu_CreateInfo()
-            info.text = string.format("%s [%s]", entry.name or "Unknown", suffix)
+            info.text = displayText
             info.checked = (self.selectedEntryID == entry.id)
             info.func = function()
                 self.selectedEntryID = entry.id
@@ -452,7 +457,13 @@ function EOA:RefreshResultsDropdown()
 
     local selected = self:GetSelectedEntry()
     if selected then
-        UIDropDownMenu_SetText(self.ui.resultsDropdown, string.format("%s [%s]", selected.name or "Unknown", TYPE_LABELS[selected.type] or selected.type or "Spot"))
+        local displayText = selected.name or "Unknown"
+        if selected.levelMin and selected.levelMax then
+            displayText = displayText .. " [" .. selected.levelMin .. "–" .. selected.levelMax .. "]"
+        elseif selected.levelMin then
+            displayText = displayText .. " [" .. selected.levelMin .. "]"
+        end
+        UIDropDownMenu_SetText(self.ui.resultsDropdown, displayText)
     else
         UIDropDownMenu_SetText(self.ui.resultsDropdown, "No results")
     end
